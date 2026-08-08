@@ -5,7 +5,7 @@ import { localCircumstances } from './lib/local'
 import { centralPath, footprint, haversineKm, polarClose, unwrapLngs } from './lib/shadow'
 import { HeroPanel } from './components/HeroPanel'
 import { MapView } from './components/MapView'
-import { ObserverPanel } from './components/ObserverPanel'
+import { ObserverEmpty, ObserverPanel } from './components/ObserverPanel'
 import { TimeSlider } from './components/TimeSlider'
 
 export interface MarkerPos {
@@ -162,11 +162,13 @@ export function App() {
         catalog={catalog}
         eclipse={eclipse}
         home={home}
+        marker={marker}
         visibility={visibility}
         visibleFrom={visibleFrom}
         onSelect={selectEclipse}
         onMarker={setMarker}
       />
+      {!marker && <ObserverEmpty onMarker={setMarker} />}
       {marker && (
         <ObserverPanel
           eclipse={eclipse}

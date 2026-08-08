@@ -10,6 +10,7 @@ interface Props {
   catalog: EclipseEntry[]
   eclipse: EclipseEntry
   home: Home | null
+  marker: MarkerPos | null
   visibility: Visibility | null
   visibleFrom: VisibleFrom | null
   onSelect: (id: string) => void
@@ -24,6 +25,16 @@ export const KIND_LABEL: Partial<Record<EclipseKind, string>> = {
 
 function pad(n: number): string {
   return n.toString().padStart(2, '0')
+}
+
+export function CrosshairIcon() {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <circle cx="8" cy="8" r="2.4" fill="currentColor" />
+      <circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M8 0v2.4M8 13.6V16M0 8h2.4M13.6 8H16" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  )
 }
 
 function Countdown({ target }: { target: Date }) {
@@ -102,7 +113,13 @@ function HomeLine({ eclipse, home, onMarker }: Pick<Props, 'eclipse' | 'home' | 
 }
 
 export function HeroPanel(props: Props) {
-  const { catalog, eclipse, home, onSelect, onMarker } = props
+  const { catalog, eclipse, home, marker, onSelect, onMarker } = props
+  // The countdown targets the maximum at the pinned spot when there is one.
+  const pinInfo = useMemo(
+    () => (marker ? localCircumstances(eclipse, marker.lat, marker.lng) : null),
+    [eclipse, marker],
+  )
+  const countdownTarget = pinInfo?.peak.time.date ?? eclipse.peak.date
   const geolocate = () =>
     navigator.geolocation?.getCurrentPosition((p) =>
       onMarker({ lat: p.coords.latitude, lng: p.coords.longitude }),
@@ -117,18 +134,21 @@ export function HeroPanel(props: Props) {
         <em>{peakDate.toLocaleDateString(undefined, { month: 'long' })} {peakDate.getUTCDate()}, {peakDate.getUTCFullYear()}</em>
       </h1>
 
-      <Countdown target={peakDate} />
+      <Countdown target={countdownTarget} />
+      <p className="peak-line">
+        {marker
+          ? pinInfo
+            ? `until the maximum at your spot, ${fmtTime(pinInfo.peak.time.date)}`
+            : 'until the global peak — this eclipse is not visible from your spot'
+          : 'until the global peak — click the map for your local times'}
+      </p>
 
       <HomeLine eclipse={eclipse} home={home} onMarker={onMarker} />
 
       <div className="hero-controls">
         <div className="hero-actions">
           <button className="btn btn-primary" onClick={geolocate}>
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <circle cx="8" cy="8" r="2.4" fill="currentColor" />
-              <circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" strokeWidth="1.2" />
-              <path d="M8 0v2.4M8 13.6V16M0 8h2.4M13.6 8H16" stroke="currentColor" strokeWidth="1.2" />
-            </svg>
+            <CrosshairIcon />
             Precise location
           </button>
           {eclipse.greatest && (

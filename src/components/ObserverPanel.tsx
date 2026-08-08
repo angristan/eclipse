@@ -6,7 +6,7 @@ import { browserZone, fmtDuration, fmtTime } from '../lib/format'
 import { localCircumstances, sunMoonView } from '../lib/local'
 import { haversineKm, nearestOnLine, type CentralPath } from '../lib/shadow'
 import { cloudCover, forecastAvailable } from '../lib/weather'
-import { KIND_LABEL } from './HeroPanel'
+import { CrosshairIcon, KIND_LABEL } from './HeroPanel'
 import { SunSim } from './SunSim'
 
 interface Props {
@@ -144,6 +144,27 @@ export function ObserverPanel({ eclipse, marker, home, path, simTime, onMarker, 
           <SunSim view={view} />
         </>
       )}
+    </aside>
+  )
+}
+
+/** Shown in place of the observer panel until a point is picked. */
+export function ObserverEmpty({ onMarker }: { onMarker: (pos: MarkerPos) => void }) {
+  const geolocate = () =>
+    navigator.geolocation?.getCurrentPosition((p) =>
+      onMarker({ lat: p.coords.latitude, lng: p.coords.longitude }),
+    )
+  return (
+    <aside className="panel observer observer-empty" aria-label="Pick a location">
+      <h2 className="display">Where will you watch from?</h2>
+      <p className="muted">
+        Click anywhere on the map for the local story: when the eclipse starts, peaks, and ends,
+        how much of the Sun is covered, and the cloud forecast.
+      </p>
+      <button className="btn btn-primary" onClick={geolocate}>
+        <CrosshairIcon />
+        Use my precise location
+      </button>
     </aside>
   )
 }
