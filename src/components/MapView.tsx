@@ -9,7 +9,8 @@ import type { MarkerPos } from '../App'
 interface Props {
   path: CentralPath | null
   coverage: CoverageImage
-  footprints: { umbra: LngLat[]; penumbra: LngLat[] }
+  shadow: CoverageImage
+  umbra: LngLat[]
   marker: MarkerPos | null
   onPick: (pos: MarkerPos) => void
   fitKey: string
@@ -72,9 +73,10 @@ function line(points: LngLat[]): FeatureCollection {
   }
 }
 
-export function MapView({ path, coverage, footprints, marker, onPick, fitKey }: Props) {
+export function MapView({ path, coverage, shadow, umbra, marker, onPick, fitKey }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
+  const shadowCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const markerRef = useRef<Marker | null>(null)
   const [ready, setReady] = useState(false)
 
@@ -104,17 +106,21 @@ export function MapView({ path, coverage, footprints, marker, onPick, fitKey }: 
       map.on('error', (e) => console.error('map error', e.error?.message ?? e))
 
       map.on('load', () => {
-      map.addSource('penumbra', { type: 'geojson', data: EMPTY })
+      const shadowCanvas = document.createElement('canvas')
+      shadowCanvas.width = shadow.width
+      shadowCanvas.height = shadow.height
+      shadowCanvasRef.current = shadowCanvas
+      map.addSource('shadow', {
+        type: 'canvas',
+        canvas: shadowCanvas,
+        coordinates: shadow.coordinates,
+        animate: true,
+      })
       map.addSource('umbra', { type: 'geojson', data: EMPTY })
       map.addSource('band', { type: 'geojson', data: EMPTY })
       map.addSource('center-line', { type: 'geojson', data: EMPTY })
 
-      map.addLayer({
-        id: 'penumbra-fill',
-        type: 'fill',
-        source: 'penumbra',
-        paint: { 'fill-color': '#e89a5d', 'fill-opacity': 0.05 },
-      })
+      map.addLayer({ id: 'shadow-raster', type: 'raster', source: 'shadow', paint: { 'raster-resampling': 'linear', 'raster-fade-duration': 0 } })
       map.addLayer({
         id: 'band-glow',
         type: 'line',
@@ -201,7 +207,7 @@ export function MapView({ path, coverage, footprints, marker, onPick, fitKey }: 
     })
     map.addLayer(
       { id: 'coverage-raster', type: 'raster', source: 'coverage', paint: { 'raster-resampling': 'linear' } },
-      'penumbra-fill',
+      'shadow-raster',
     )
 
     if (bandRing.length > 1) {
@@ -219,13 +225,17 @@ export function MapView({ path, coverage, footprints, marker, onPick, fitKey }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, fitKey, path, coverage])
 
-  // Animated shadow footprints.
+  // Animated shadow raster + crisp umbra outline.
   useEffect(() => {
     if (!ready) return
-    setData('umbra', ring(footprints.umbra))
-    setData('penumbra', ring(footprints.penumbra))
+    const canvas = shadowCanvasRef.current
+    if (canvas) {
+      const imageData = new ImageData(new Uint8ClampedArray(shadow.pixels), shadow.width, shadow.height)
+      canvas.getContext('2d')!.putImageData(imageData, 0, 0)
+    }
+    setData('umbra', ring(umbra))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, footprints])
+  }, [ready, shadow, umbra])
 
   // Observer marker.
   useEffect(() => {

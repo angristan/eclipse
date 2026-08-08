@@ -205,3 +205,87 @@ export function coverageImage(grid: Grid, width = 1440, height = 720): CoverageI
     ],
   }
 }
+
+const SHADOW_W = 360
+const SHADOW_H = 180
+let shadowEcef: { ex: Float64Array; ey: Float64Array; ez: Float64Array } | null = null
+let shadowPixels: Uint8ClampedArray | null = null
+
+function shadowGridEcef() {
+  if (shadowEcef) return shadowEcef
+  const n = SHADOW_W * SHADOW_H
+  const ex = new Float64Array(n)
+  const ey = new Float64Array(n)
+  const ez = new Float64Array(n)
+  const top = mercY(85)
+  const bottom = mercY(-85)
+  for (let py = 0; py < SHADOW_H; py++) {
+    const merc = top - ((py + 0.5) / SHADOW_H) * (top - bottom)
+    const lat = 2 * Math.atan(Math.exp(merc)) - Math.PI / 2
+    const nrm = EARTH_A / Math.sqrt(1 - E2 * Math.sin(lat) ** 2)
+    const cp = Math.cos(lat)
+    for (let px = 0; px < SHADOW_W; px++) {
+      const lng = (-180 + ((px + 0.5) / SHADOW_W) * 360) * RAD
+      const i = py * SHADOW_W + px
+      ex[i] = nrm * cp * Math.cos(lng)
+      ey[i] = nrm * cp * Math.sin(lng)
+      ez[i] = nrm * (1 - E2) * Math.sin(lat)
+    }
+  }
+  shadowEcef = { ex, ey, ez }
+  return shadowEcef
+}
+
+/**
+ * The Moon's shadow at one instant, as a raster: darkness proportional to
+ * the light blocked right now, deep at the umbra and fading to nothing at
+ * the penumbra edge, softly clipped at the terminator. Same warp as the
+ * coverage raster, so the moving shadow and the static gradient read as one
+ * system. The pixel buffer is reused between calls.
+ */
+export function shadowImage(time: AstroTime): CoverageImage {
+  const { ex, ey, ez } = shadowGridEcef()
+  const f = shadowFrame(time)
+  const theta = SiderealTime(time) * 15 * RAD
+  const cosT = Math.cos(theta)
+  const sinT = Math.sin(theta)
+  const rp = f.penumbraKm
+  const ru = Math.abs(f.umbraKm)
+  const { x: ax, y: ay, z: az } = f.axis
+  const { x: mx, y: my, z: mz } = f.moon
+  if (!shadowPixels) shadowPixels = new Uint8ClampedArray(SHADOW_W * SHADOW_H * 4)
+  const out = shadowPixels
+  for (let i = 0; i < ex.length; i++) {
+    const px = ex[i] * cosT - ey[i] * sinT
+    const py = ex[i] * sinT + ey[i] * cosT
+    const pz = ez[i]
+    let alpha = 0
+    const len = Math.sqrt(px * px + py * py + pz * pz)
+    const sunUp = -(px * ax + py * ay + pz * az) / len
+    if (sunUp > -0.03) {
+      const dx = px - mx
+      const dy = py - my
+      const dz = pz - mz
+      const cx = dy * az - dz * ay
+      const cy = dz * ax - dx * az
+      const cz = dx * ay - dy * ax
+      const dist = Math.sqrt(cx * cx + cy * cy + cz * cz)
+      const m = (rp - dist) / (rp - ru)
+      if (m > 0) {
+        const horizonFade = Math.min(1, (sunUp + 0.03) / 0.05)
+        alpha = Math.min(1, m) ** 1.6 * 0.62 * horizonFade
+      }
+    }
+    const o = i * 4
+    out[o] = 12
+    out[o + 1] = 8
+    out[o + 2] = 6
+    out[o + 3] = Math.round(alpha * 255)
+  }
+  return {
+    width: SHADOW_W,
+    height: SHADOW_H,
+    pixels: out,
+    coordinates: [[-180, 85], [180, 85], [180, -85], [-180, -85]],
+  }
+}
