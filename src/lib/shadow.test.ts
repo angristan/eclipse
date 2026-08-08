@@ -101,3 +101,18 @@ describe('polarClose', () => {
     expect(polarClose(polar).length).toBe(polar.length + 2)
   })
 })
+
+describe('coverage bands', () => {
+  it('builds nested iso-coverage rings for 2026', async () => {
+    const { coverageBands } = await import('./shadow')
+    const bands = coverageBands(eclipse2026.peak)
+    expect(bands.map((b) => b.magnitude)).toEqual([0.2, 0.4, 0.6, 0.8])
+    for (const b of bands) expect(b.ring.length).toBeGreaterThan(100)
+    // Higher-magnitude zones are smaller: compare rough latitude spans.
+    const span = (ring: [number, number][]) => {
+      const lats = ring.map((p) => p[1])
+      return Math.max(...lats) - Math.min(...lats)
+    }
+    expect(span(bands[3].ring)).toBeLessThan(span(bands[0].ring))
+  })
+})

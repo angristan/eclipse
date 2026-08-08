@@ -7,6 +7,7 @@ import type { MarkerPos } from '../App'
 
 interface Props {
   path: CentralPath | null
+  bands: { magnitude: number; ring: LngLat[] }[]
   footprints: { umbra: LngLat[]; penumbra: LngLat[] }
   marker: MarkerPos | null
   onPick: (pos: MarkerPos) => void
@@ -70,7 +71,7 @@ function line(points: LngLat[]): FeatureCollection {
   }
 }
 
-export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
+export function MapView({ path, bands, footprints, marker, onPick, fitKey }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
   const markerRef = useRef<Marker | null>(null)
@@ -101,11 +102,24 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
       map.on('error', (e) => console.error('map error', e.error?.message ?? e))
 
       map.on('load', () => {
+      map.addSource('coverage', { type: 'geojson', data: EMPTY })
       map.addSource('penumbra', { type: 'geojson', data: EMPTY })
       map.addSource('umbra', { type: 'geojson', data: EMPTY })
       map.addSource('band', { type: 'geojson', data: EMPTY })
       map.addSource('center-line', { type: 'geojson', data: EMPTY })
 
+      map.addLayer({
+        id: 'coverage-fill',
+        type: 'fill',
+        source: 'coverage',
+        paint: { 'fill-color': '#e89a5d', 'fill-opacity': 0.04 },
+      })
+      map.addLayer({
+        id: 'coverage-edge',
+        type: 'line',
+        source: 'coverage',
+        paint: { 'line-color': '#e89a5d', 'line-opacity': 0.18, 'line-width': 0.8 },
+      })
       map.addLayer({
         id: 'penumbra-fill',
         type: 'fill',
@@ -181,6 +195,16 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
     const bandRing = path ? polarClose(unwrapLngs(path.band)) : []
     setData('band', ring(bandRing))
     setData('center-line', line(path ? unwrapLngs(path.centerLine) : []))
+    setData('coverage', {
+      type: 'FeatureCollection',
+      features: bands
+        .filter((b) => b.ring.length > 3)
+        .map((b) => ({
+          type: 'Feature',
+          properties: { magnitude: b.magnitude },
+          geometry: { type: 'Polygon', coordinates: [[...b.ring, b.ring[0]]] },
+        })),
+    })
 
     if (bandRing.length > 1) {
       // High-latitude paths can exceed Mercator's ±85.05° range; clamp so
@@ -195,7 +219,7 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
       mapRef.current!.easeTo({ center: [0, 30], zoom: 1.4, duration: 1200 })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, fitKey, path])
+  }, [ready, fitKey, path, bands])
 
   // Animated shadow footprints.
   useEffect(() => {

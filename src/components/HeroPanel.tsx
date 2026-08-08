@@ -138,7 +138,7 @@ export function HeroPanel(props: Props) {
       <p className="peak-line">
         {marker
           ? pinInfo
-            ? `until the maximum at your spot, ${fmtTime(pinInfo.peak.time.date)}`
+            ? `until your maximum, ${fmtTime(pinInfo.peak.time.date)} · global peak ${fmtTime(eclipse.peak.date)}`
             : 'until the global peak — this eclipse is not visible from your spot'
           : 'until the global peak — click the map for your local times'}
       </p>
