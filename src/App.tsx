@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { EclipseKind } from 'astronomy-engine'
 import { buildCatalog, nextEclipse, type EclipseEntry } from './lib/catalog'
 import { localCircumstances } from './lib/local'
-import { centralPath, coverageBands, footprint, haversineKm, polarClose, unwrapLngs } from './lib/shadow'
+import { coverageZones } from './lib/coverage'
+import { centralPath, footprint, haversineKm, polarClose, unwrapLngs } from './lib/shadow'
 import { HeroPanel } from './components/HeroPanel'
 import { MapView } from './components/MapView'
 import { ObserverEmpty, ObserverPanel } from './components/ObserverPanel'
@@ -109,14 +110,7 @@ export function App() {
 
   const eclipse = catalog.find((e) => e.id === eclipseId)!
   const path = useMemo(() => centralPath(eclipse.peak, WINDOW_MIN / 60), [eclipse])
-  const bands = useMemo(
-    () =>
-      coverageBands(eclipse.peak).map((b) => ({
-        magnitude: b.magnitude,
-        ring: polarClose(unwrapLngs(b.ring)),
-      })),
-    [eclipse],
-  )
+  const zones = useMemo(() => coverageZones(eclipse.peak), [eclipse])
   const simTime = useMemo(() => eclipse.peak.AddDays(offsetMin / 1440), [eclipse, offsetMin])
 
   const footprints = useMemo(
@@ -161,7 +155,7 @@ export function App() {
     <div className="app">
       <MapView
         path={path}
-        bands={bands}
+        zones={zones}
         footprints={footprints}
         marker={marker}
         onPick={setMarker}

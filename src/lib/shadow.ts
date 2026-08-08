@@ -98,19 +98,6 @@ function projectToSurface(p: Vec3, axis: Vec3): Vec3 | null {
 }
 
 /**
- * Project `p` along the axis onto the ellipsoid, or clamp to the Earth's
- * silhouette as seen along the axis when the ray misses. Continuous across
- * the limb, which keeps offset curves and rings free of chords.
- */
-function projectOrLimb(p: Vec3, axis: Vec3): Vec3 {
-  const hit = projectToSurface(p, axis)
-  if (hit) return hit
-  const w = normalize(sub(p, scale(axis, dot(p, axis))))
-  const k = 1 / Math.sqrt((w.x * w.x + w.y * w.y) / (EARTH_A * EARTH_A) + (w.z * w.z) / (EARTH_B * EARTH_B))
-  return scale(w, k)
-}
-
-/**
  * Outline of the umbra or penumbra footprint at one instant, as a ring of
  * geographic points. Rim rays that miss the Earth are clamped to the limb
  * (the day/night edge as seen along the shadow axis) so the ring always
@@ -204,94 +191,6 @@ export function centralPath(peak: AstroTime, hoursAround = 3, stepSeconds = 30):
     startUt: samples[0].time.ut,
     endUt: samples[samples.length - 1].time.ut,
   }
-}
-
-export interface CoverageBand {
-  /** Magnitude (fraction of the Sun's diameter covered) at this band's outer edge. */
-  magnitude: number
-  ring: LngLat[]
-}
-
-/**
- * Iso-coverage zones around the shadow track, like the shaded bands on
- * classic eclipse infographics. In the plane perpendicular to the shadow
- * axis, eclipse magnitude falls off linearly from the umbra edge (1) to the
- * penumbra edge (0), so the zone where magnitude ≥ m is bounded by offset
- * curves of the axis at distance d(m) = Rp − m·(Rp − Ru), clamped to the
- * Earth's silhouette where they leave the disc. Works for partial eclipses
- * too, where the axis itself never touches Earth.
- */
-export function coverageBands(
-  peak: AstroTime,
-  magnitudes = [0.2, 0.4, 0.6, 0.8],
-  hoursAround = 3,
-  stepSeconds = 90,
-): CoverageBand[] {
-  interface Sample {
-    time: AstroTime
-    frame: ShadowFrame
-  }
-  const samples: Sample[] = []
-  const steps = Math.round((hoursAround * 2 * 3600) / stepSeconds)
-  for (let i = 0; i <= steps; i++) {
-    const time = peak.AddDays((-hoursAround + (i * stepSeconds) / 3600) / 24)
-    const frame = shadowFrame(time)
-    // Keep only instants where the penumbra actually touches Earth.
-    if (norm(frame.center) < EARTH_A + frame.penumbraKm) samples.push({ time, frame })
-  }
-  if (samples.length < 2) return []
-
-  const radiusAt = (frame: ShadowFrame, m: number) =>
-    frame.penumbraKm - m * (frame.penumbraKm - Math.abs(frame.umbraKm))
-
-  return magnitudes.map((m) => {
-    // Keep only instants where this magnitude's circle can touch Earth;
-    // otherwise entry/exit samples smear clamped junk along the limb.
-    const kept = samples.filter((s) => norm(s.frame.center) < EARTH_A + radiusAt(s.frame, m))
-    if (kept.length < 2) return { magnitude: m, ring: [] }
-
-    const sideAt = (i: number) => {
-      const prev = kept[Math.max(0, i - 1)].frame.center
-      const next = kept[Math.min(kept.length - 1, i + 1)].frame.center
-      const tangent = normalize(sub(next, prev))
-      return { tangent, side: normalize(cross(kept[i].frame.axis, tangent)) }
-    }
-
-    const north: LngLat[] = []
-    const south: LngLat[] = []
-    for (let i = 0; i < kept.length; i++) {
-      const { time, frame } = kept[i]
-      const { side } = sideAt(i)
-      const d = radiusAt(frame, m)
-      north.push(toLngLat(projectOrLimb(add(frame.center, scale(side, d)), frame.axis), time))
-      south.push(toLngLat(projectOrLimb(add(frame.center, scale(side, -d)), frame.axis), time))
-    }
-
-    // Rounded end caps: half-circles of radius d around the first/last kept
-    // instants, so the zone ends in lobes instead of pinches or chords.
-    const cap = (i: number, forward: 1 | -1): LngLat[] => {
-      const { time, frame } = kept[i]
-      const { tangent, side } = sideAt(i)
-      const d = radiusAt(frame, m)
-      const arc: LngLat[] = []
-      const steps = 16
-      for (let k = 1; k < steps; k++) {
-        const phi = (Math.PI * k) / steps
-        const dir = add(
-          scale(side, Math.cos(phi) * forward),
-          scale(tangent, Math.sin(phi) * forward),
-        )
-        arc.push(toLngLat(projectOrLimb(add(frame.center, scale(dir, d)), frame.axis), time))
-      }
-      return arc
-    }
-
-    return {
-      magnitude: m,
-      // north forward → end cap → south backward → start cap → close.
-      ring: [...north, ...cap(kept.length - 1, 1), ...south.reverse(), ...cap(0, -1), north[0]],
-    }
-  })
 }
 
 /**

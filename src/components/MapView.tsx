@@ -7,7 +7,7 @@ import type { MarkerPos } from '../App'
 
 interface Props {
   path: CentralPath | null
-  bands: { magnitude: number; ring: LngLat[] }[]
+  zones: { magnitude: number; rings: LngLat[][] }[]
   footprints: { umbra: LngLat[]; penumbra: LngLat[] }
   marker: MarkerPos | null
   onPick: (pos: MarkerPos) => void
@@ -71,7 +71,7 @@ function line(points: LngLat[]): FeatureCollection {
   }
 }
 
-export function MapView({ path, bands, footprints, marker, onPick, fitKey }: Props) {
+export function MapView({ path, zones, footprints, marker, onPick, fitKey }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
   const markerRef = useRef<Marker | null>(null)
@@ -191,13 +191,13 @@ export function MapView({ path, bands, footprints, marker, onPick, fitKey }: Pro
     setData('center-line', line(path ? unwrapLngs(path.centerLine) : []))
     setData('coverage', {
       type: 'FeatureCollection',
-      features: bands
-        .filter((b) => b.ring.length > 3)
-        .map((b) => ({
-          type: 'Feature',
-          properties: { magnitude: b.magnitude },
-          geometry: { type: 'Polygon', coordinates: [[...b.ring, b.ring[0]]] },
+      features: zones.flatMap((z) =>
+        z.rings.map((ring) => ({
+          type: 'Feature' as const,
+          properties: { magnitude: z.magnitude },
+          geometry: { type: 'Polygon' as const, coordinates: [[...ring, ring[0]]] },
         })),
+      ),
     })
 
     if (bandRing.length > 1) {
@@ -213,7 +213,7 @@ export function MapView({ path, bands, footprints, marker, onPick, fitKey }: Pro
       mapRef.current!.easeTo({ center: [0, 30], zoom: 1.4, duration: 1200 })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, fitKey, path, bands])
+  }, [ready, fitKey, path, zones])
 
   // Animated shadow footprints.
   useEffect(() => {
