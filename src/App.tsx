@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildCatalog, nextEclipse, type EclipseEntry } from './lib/catalog'
 import { centralPath, footprint, unwrapLngs } from './lib/shadow'
+import { HeroPanel } from './components/HeroPanel'
 import { MapView } from './components/MapView'
-import { Sidebar } from './components/Sidebar'
+import { ObserverPanel } from './components/ObserverPanel'
 import { TimeSlider } from './components/TimeSlider'
 
 export interface MarkerPos {
@@ -78,33 +79,32 @@ export function App() {
 
   return (
     <div className="app">
-      <Sidebar
-        catalog={catalog}
-        eclipse={eclipse}
-        onSelect={selectEclipse}
+      <MapView
+        path={path}
+        footprints={footprints}
         marker={marker}
-        onMarker={setMarker}
-        simTime={simTime}
+        onPick={setMarker}
+        fitKey={eclipseId}
       />
-      <div className="map-pane">
-        <MapView
-          path={path}
-          footprints={footprints}
+      <HeroPanel catalog={catalog} eclipse={eclipse} onSelect={selectEclipse} onMarker={setMarker} />
+      {marker && (
+        <ObserverPanel
+          eclipse={eclipse}
           marker={marker}
-          onPick={setMarker}
-          fitKey={eclipseId}
+          simTime={simTime}
+          onClear={() => setMarker(null)}
         />
-        <TimeSlider
-          value={offsetMin}
-          onChange={(v) => {
-            setPlaying(false)
-            setOffsetMin(v)
-          }}
-          playing={playing}
-          onTogglePlay={() => setPlaying((p) => !p)}
-          simDate={simTime.date}
-        />
-      </div>
+      )}
+      <TimeSlider
+        value={offsetMin}
+        onChange={(v) => {
+          setPlaying(false)
+          setOffsetMin(v)
+        }}
+        playing={playing}
+        onTogglePlay={() => setPlaying((p) => !p)}
+        simDate={simTime.date}
+      />
     </div>
   )
 }

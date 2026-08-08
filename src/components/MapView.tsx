@@ -27,25 +27,26 @@ function warmize(style: Record<string, unknown>): Record<string, unknown> {
     const paint = (layer.paint ??= {})
     switch (layer.type) {
       case 'background':
-        paint['background-color'] = '#141110'
+        paint['background-color'] = '#1f1813' // land
         break
       case 'fill':
-        if (layer.id === 'water') paint['fill-color'] = '#0d0b0a'
+        if (layer.id === 'water') paint['fill-color'] = '#0a0807'
+        else if (layer.id.includes('ice') || layer.id.includes('glacier')) paint['fill-color'] = '#2b2219'
         else if (layer.id === 'building') {
-          paint['fill-color'] = '#211a16'
-          paint['fill-outline-color'] = '#211a16'
-        } else paint['fill-color'] = '#1a1512'
+          paint['fill-color'] = '#2a211a'
+          paint['fill-outline-color'] = '#2a211a'
+        } else paint['fill-color'] = '#241c16'
         delete paint['fill-pattern']
         break
       case 'line':
-        if (layer.id.startsWith('boundary')) paint['line-color'] = '#6b5140'
-        else if (layer.id === 'waterway') paint['line-color'] = '#0d0b0a'
-        else if (layer.id.includes('casing')) paint['line-color'] = '#161210'
-        else paint['line-color'] = '#2b221c'
+        if (layer.id.startsWith('boundary')) paint['line-color'] = '#5a4636'
+        else if (layer.id === 'waterway') paint['line-color'] = '#0a0807'
+        else if (layer.id.includes('casing')) paint['line-color'] = '#171210'
+        else paint['line-color'] = '#2e241d'
         break
       case 'symbol':
-        if (paint['text-color']) paint['text-color'] = layer.id === 'water_name' ? '#57707a' : '#b7a28c'
-        if (paint['text-halo-color']) paint['text-halo-color'] = '#141110'
+        if (paint['text-color']) paint['text-color'] = layer.id === 'water_name' ? '#4e6570' : '#a08b74'
+        if (paint['text-halo-color']) paint['text-halo-color'] = '#120e0c'
         break
     }
   }
@@ -109,37 +110,49 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
         id: 'penumbra-fill',
         type: 'fill',
         source: 'penumbra',
-        paint: { 'fill-color': '#d98a62', 'fill-opacity': 0.05 },
+        paint: { 'fill-color': '#e89a5d', 'fill-opacity': 0.05 },
+      })
+      map.addLayer({
+        id: 'band-glow',
+        type: 'line',
+        source: 'band',
+        paint: { 'line-color': '#e89a5d', 'line-width': 7, 'line-blur': 8, 'line-opacity': 0.35 },
       })
       map.addLayer({
         id: 'band-fill',
         type: 'fill',
         source: 'band',
-        paint: { 'fill-color': '#d98a62', 'fill-opacity': 0.16 },
+        paint: { 'fill-color': '#e89a5d', 'fill-opacity': 0.2 },
       })
       map.addLayer({
         id: 'band-edge',
         type: 'line',
         source: 'band',
-        paint: { 'line-color': '#a95f3d', 'line-opacity': 0.8, 'line-width': 1 },
+        paint: { 'line-color': '#f0b07a', 'line-opacity': 0.9, 'line-width': 1.2 },
       })
       map.addLayer({
         id: 'center-line',
         type: 'line',
         source: 'center-line',
-        paint: { 'line-color': '#f4e4ce', 'line-opacity': 0.85, 'line-width': 1.4, 'line-dasharray': [3, 2] },
+        paint: { 'line-color': '#ffd9a0', 'line-opacity': 0.9, 'line-width': 1.4, 'line-dasharray': [3, 2] },
+      })
+      map.addLayer({
+        id: 'umbra-glow',
+        type: 'line',
+        source: 'umbra',
+        paint: { 'line-color': '#ffb26b', 'line-width': 6, 'line-blur': 8, 'line-opacity': 0.5 },
       })
       map.addLayer({
         id: 'umbra-fill',
         type: 'fill',
         source: 'umbra',
-        paint: { 'fill-color': '#000000', 'fill-opacity': 0.75 },
+        paint: { 'fill-color': '#050403', 'fill-opacity': 0.82 },
       })
       map.addLayer({
         id: 'umbra-edge',
         type: 'line',
         source: 'umbra',
-        paint: { 'line-color': '#d98a62', 'line-width': 1.5 },
+        paint: { 'line-color': '#ffb26b', 'line-width': 1.4 },
       })
       setReady(true)
       })
@@ -201,7 +214,7 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
       return
     }
     if (!markerRef.current) {
-      markerRef.current = new Marker({ color: '#69c1b5', draggable: true })
+      markerRef.current = new Marker({ color: '#f6c25c', draggable: true })
         .setLngLat([marker.lng, marker.lat])
         .addTo(mapRef.current!)
       markerRef.current.on('dragend', () => {
