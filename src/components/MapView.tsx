@@ -224,6 +224,10 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
     } else {
       markerRef.current.setLngLat([marker.lng, marker.lat])
     }
+    // Keep a newly placed point in view (jump-to-totality, geolocation).
+    if (!mapRef.current!.getBounds().contains([marker.lng, marker.lat])) {
+      mapRef.current!.easeTo({ center: [marker.lng, marker.lat], duration: 800 })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, marker])
 

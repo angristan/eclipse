@@ -11,6 +11,10 @@ export interface MarkerPos {
   lng: number
 }
 
+export interface Home extends MarkerPos {
+  city: string | null
+}
+
 /** Slider range around the eclipse peak, in minutes. */
 export const WINDOW_MIN = 180
 const PLAY_SPEED = 600 // simulated seconds per real second
@@ -34,6 +38,20 @@ export function App() {
   const [marker, setMarker] = useState<MarkerPos | null>(initial.marker)
   const [offsetMin, setOffsetMin] = useState(0)
   const [playing, setPlaying] = useState(false)
+  const [home, setHome] = useState<Home | null>(null)
+
+  // Coarse edge geolocation: personalizes the forecast with no permission
+  // prompt. Fails silently outside the deployed Worker (e.g. vite dev).
+  useEffect(() => {
+    fetch('/api/whereami')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { lat: number | null; lng: number | null; city: string | null } | null) => {
+        if (!d || d.lat === null || d.lng === null) return
+        setHome({ lat: d.lat, lng: d.lng, city: d.city })
+        setMarker((m) => m ?? { lat: d.lat!, lng: d.lng! })
+      })
+      .catch(() => {})
+  }, [])
 
   const eclipse = catalog.find((e) => e.id === eclipseId)!
   const path = useMemo(() => centralPath(eclipse.peak, WINDOW_MIN / 60), [eclipse])
@@ -86,12 +104,21 @@ export function App() {
         onPick={setMarker}
         fitKey={eclipseId}
       />
-      <HeroPanel catalog={catalog} eclipse={eclipse} onSelect={selectEclipse} onMarker={setMarker} />
+      <HeroPanel
+        catalog={catalog}
+        eclipse={eclipse}
+        home={home}
+        onSelect={selectEclipse}
+        onMarker={setMarker}
+      />
       {marker && (
         <ObserverPanel
           eclipse={eclipse}
           marker={marker}
+          home={home}
+          path={path}
           simTime={simTime}
+          onMarker={setMarker}
           onClear={() => setMarker(null)}
         />
       )}

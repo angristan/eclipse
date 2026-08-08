@@ -176,6 +176,36 @@ export function centralPath(peak: AstroTime, hoursAround = 3, stepSeconds = 30):
   }
 }
 
+const EARTH_MEAN_R = 6371
+
+/** Great-circle distance between two [lng, lat] points, km. */
+export function haversineKm(a: LngLat, b: LngLat): number {
+  const rad = Math.PI / 180
+  const dLat = (b[1] - a[1]) * rad
+  const dLng = (b[0] - a[0]) * rad
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(a[1] * rad) * Math.cos(b[1] * rad) * Math.sin(dLng / 2) ** 2
+  return 2 * EARTH_MEAN_R * Math.asin(Math.sqrt(h))
+}
+
+/** Closest center-line point to a location, with its distance. */
+export function nearestOnLine(
+  line: LngLat[],
+  point: LngLat,
+): { point: LngLat; km: number } | null {
+  let best: LngLat | null = null
+  let bestKm = Infinity
+  for (const p of line) {
+    const km = haversineKm(p, point)
+    if (km < bestKm) {
+      bestKm = km
+      best = p
+    }
+  }
+  return best ? { point: best, km: bestKm } : null
+}
+
 /**
  * Shift longitudes by multiples of 360° so consecutive points never jump
  * across the antimeridian. MapLibre renders out-of-range longitudes fine.

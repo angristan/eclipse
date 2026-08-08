@@ -55,3 +55,14 @@ describe('local circumstances', () => {
     expect(localCircumstances(entry, -40, 170)).toBeNull() // New Zealand, night side
   })
 })
+
+describe('nearest central line', () => {
+  it('finds the 2026 center line within a few hundred km of Madrid', async () => {
+    const { centralPath, nearestOnLine } = await import('./shadow')
+    const path = centralPath(eclipse2026.peak)!
+    const nearest = nearestOnLine(path.centerLine, [-3.7038, 40.4168])
+    expect(nearest).not.toBeNull()
+    expect(nearest!.km).toBeGreaterThan(0)
+    expect(nearest!.km).toBeLessThan(400)
+  })
+})

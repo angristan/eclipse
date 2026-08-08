@@ -1,10 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "eclipse",
+  "main": "src/worker.ts",
   "compatibility_date": "2026-07-01",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
   },
   "routes": [{ "pattern": "eclipse.stanislas.cloud", "custom_domain": true }],
   "workers_dev": false,

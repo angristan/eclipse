@@ -1,12 +1,14 @@
 import { EclipseKind } from 'astronomy-engine'
-import { useEffect, useState } from 'react'
-import type { MarkerPos } from '../App'
+import { useEffect, useMemo, useState } from 'react'
+import type { Home, MarkerPos } from '../App'
 import type { EclipseEntry } from '../lib/catalog'
 import { countdownTo, fmtDateShort, fmtTime } from '../lib/format'
+import { localCircumstances } from '../lib/local'
 
 interface Props {
   catalog: EclipseEntry[]
   eclipse: EclipseEntry
+  home: Home | null
   onSelect: (id: string) => void
   onMarker: (pos: MarkerPos | null) => void
 }
@@ -60,7 +62,43 @@ function Countdown({ target }: { target: Date }) {
   )
 }
 
-export function HeroPanel({ catalog, eclipse, onSelect, onMarker }: Props) {
+/** One personal line: what this eclipse means at the visitor's own location. */
+function HomeLine({ eclipse, home, onMarker }: Pick<Props, 'eclipse' | 'home' | 'onMarker'>) {
+  const info = useMemo(
+    () => (home ? localCircumstances(eclipse, home.lat, home.lng) : null),
+    [eclipse, home],
+  )
+  if (!home) return null
+  const place = home.city ?? 'your location'
+
+  let text: string
+  if (!info || info.peak.altitude < 0) {
+    text = `Not visible from ${place}`
+  } else if (info.kind === EclipseKind.Total) {
+    text = `${place} is in the path of totality — ${fmtTime(info.peak.time.date)}`
+  } else if (info.kind === EclipseKind.Annular) {
+    text = `Ring of fire over ${place} at ${fmtTime(info.peak.time.date)}`
+  } else {
+    text = `From ${place}: ${(info.obscuration * 100).toFixed(0)}% covered at ${fmtTime(info.peak.time.date)}`
+  }
+
+  return (
+    <button
+      className="home-line"
+      onClick={() => onMarker({ lat: home.lat, lng: home.lng })}
+      title="Show details for your location"
+    >
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="8" cy="8" r="2.4" fill="currentColor" />
+        <circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" strokeWidth="1.2" />
+        <path d="M8 0v2.4M8 13.6V16M0 8h2.4M13.6 8H16" stroke="currentColor" strokeWidth="1.2" />
+      </svg>
+      {text}
+    </button>
+  )
+}
+
+export function HeroPanel({ catalog, eclipse, home, onSelect, onMarker }: Props) {
   const geolocate = () =>
     navigator.geolocation?.getCurrentPosition((p) =>
       onMarker({ lat: p.coords.latitude, lng: p.coords.longitude }),
@@ -84,9 +122,8 @@ export function HeroPanel({ catalog, eclipse, onSelect, onMarker }: Props) {
       </h1>
 
       <Countdown target={peakDate} />
-      <p className="peak-line">
-        Peak at {fmtTime(peakDate)} · to totality where you are, pick a point below
-      </p>
+
+      <HomeLine eclipse={eclipse} home={home} onMarker={onMarker} />
 
       <div className="hero-controls">
         <select
@@ -101,9 +138,18 @@ export function HeroPanel({ catalog, eclipse, onSelect, onMarker }: Props) {
           ))}
         </select>
         <div className="hero-actions">
-          <button onClick={geolocate}>My location</button>
+          <button className="btn btn-primary" onClick={geolocate}>
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="8" cy="8" r="2.4" fill="currentColor" />
+              <circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" strokeWidth="1.2" />
+              <path d="M8 0v2.4M8 13.6V16M0 8h2.4M13.6 8H16" stroke="currentColor" strokeWidth="1.2" />
+            </svg>
+            Precise location
+          </button>
           {eclipse.greatest && (
-            <button onClick={() => onMarker(eclipse.greatest)}>Greatest eclipse</button>
+            <button className="btn btn-ghost" onClick={() => onMarker(eclipse.greatest)}>
+              Greatest eclipse
+            </button>
           )}
         </div>
       </div>
@@ -115,9 +161,9 @@ export function HeroPanel({ catalog, eclipse, onSelect, onMarker }: Props) {
           <a href="https://github.com/cosinekitty/astronomy">astronomy-engine</a>. Map by{' '}
           <a href="https://maplibre.org">MapLibre</a> and{' '}
           <a href="https://openfreemap.org">OpenFreeMap</a>, clouds by{' '}
-          <a href="https://open-meteo.com">Open-Meteo</a>. Accuracy is a few kilometers — check
-          official sources before chasing the edge of the path.{' '}
-          <a href="https://github.com/angristan/eclipse">Source</a>
+          <a href="https://open-meteo.com">Open-Meteo</a>. Your approximate position comes from the
+          CDN edge and never leaves it. Accuracy is a few kilometers — check official sources before
+          chasing the edge of the path. <a href="https://github.com/angristan/eclipse">Source</a>
         </p>
       </details>
     </section>

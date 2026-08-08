@@ -192,28 +192,103 @@ button {
   font-family: inherit;
 }
 
-.hero-actions button,
-.time-slider button {
-  flex: 1;
-  padding: 7px 12px;
-  background: var(--ds-paper-strong);
-  color: var(--ds-ink);
-  border: 1px solid var(--ds-line-strong);
-  border-radius: 10px;
+/* Glazed controls: boundary, fill, shallow lift, pressed compression. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 14px;
   font-size: 13px;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+  border-radius: 10px;
   cursor: pointer;
-  box-shadow: 0 1px 0 var(--ds-highlight) inset;
-  transition: border-color var(--motion-fast), transform var(--motion-fast);
+  transition:
+    filter var(--motion-fast),
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast),
+    border-color var(--motion-fast);
 }
 
-.hero-actions button:hover,
-.time-slider button:hover {
+.btn svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #f8ce77, #e9a453);
+  color: #2a1a0c;
+  border: 1px solid #a95f3d;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.06);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.btn-ghost {
+  background:
+    linear-gradient(180deg, rgba(244, 228, 206, 0.07), rgba(0, 0, 0, 0.15)),
+    var(--ds-paper-strong);
+  color: var(--ds-ink);
+  border: 1px solid var(--ds-line-strong);
+  box-shadow:
+    inset 0 1px 0 var(--ds-highlight),
+    0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.btn-ghost:hover {
   border-color: var(--gold);
 }
 
-.hero-actions button:active,
-.time-slider button:active {
+.btn-ghost:active {
   transform: translateY(1px);
+}
+
+.hero-actions .btn {
+  flex: 1;
+}
+
+.btn.jump {
+  width: 100%;
+  margin-top: 12px;
+  font-size: 12.5px;
+}
+
+.home-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  font-size: 13px;
+  background: rgba(246, 194, 92, 0.09);
+  color: var(--gold);
+  border: 1px solid rgba(246, 194, 92, 0.35);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.home-line:hover {
+  border-color: var(--gold);
+  background: rgba(246, 194, 92, 0.14);
+}
+
+.home-line svg {
+  width: 14px;
+  height: 14px;
+  flex: none;
 }
 
 .about {

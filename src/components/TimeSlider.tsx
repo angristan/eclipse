@@ -13,7 +13,7 @@ export function TimeSlider({ value, onChange, playing, onTogglePlay, simDate }: 
   return (
     <div className="time-slider">
       <button
-        className="play"
+        className="btn btn-ghost play"
         onClick={onTogglePlay}
         aria-label={playing ? 'Pause' : 'Animate the shadow'}
         title={playing ? 'Pause' : 'Animate the shadow'}
@@ -38,7 +38,7 @@ export function TimeSlider({ value, onChange, playing, onTogglePlay, simDate }: 
         onChange={(e) => onChange(parseFloat(e.target.value))}
         aria-label="Simulation time around eclipse peak"
       />
-      <button className="reset" onClick={() => onChange(0)} title="Jump to peak">
+      <button className="btn btn-ghost reset" onClick={() => onChange(0)} title="Jump to peak">
         peak
       </button>
       <div className="clock">
