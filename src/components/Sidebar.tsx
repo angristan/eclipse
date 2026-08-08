@@ -108,7 +108,7 @@ function LocalPanel({ eclipse, marker, simTime }: { eclipse: EclipseEntry; marke
             <tr key={label} className={ev!.altitude < 0 ? 'below-horizon' : ''}>
               <td>{label}</td>
               <td>{fmtTime(ev!.time.date)}</td>
-              <td>{ev!.altitude < 0 ? 'sun below horizon' : `☀ ${ev!.altitude.toFixed(0)}°`}</td>
+              <td>{ev!.altitude < 0 ? 'sun below horizon' : `sun ${ev!.altitude.toFixed(0)}°`}</td>
             </tr>
           ))}
         </tbody>
@@ -128,7 +128,13 @@ export function Sidebar({ catalog, eclipse, onSelect, marker, onMarker, simTime 
   return (
     <aside className="sidebar">
       <header>
-        <h1>🌘 Eclipse Tracker</h1>
+        <h1>
+          <svg viewBox="0 0 64 64" aria-hidden="true">
+            <circle cx="32" cy="32" r="26" fill="#ffd166" />
+            <circle cx="40" cy="26" r="24" fill="var(--ds-paper)" />
+          </svg>
+          Eclipse Tracker
+        </h1>
         <p className="muted">
           Solar eclipse paths and local timings, computed in your browser. Click the map for any
           location.
@@ -158,9 +164,9 @@ export function Sidebar({ catalog, eclipse, onSelect, marker, onMarker, simTime 
       </div>
 
       <div className="actions">
-        <button onClick={geolocate}>📍 Use my location</button>
+        <button onClick={geolocate}>Use my location</button>
         {eclipse.greatest && (
-          <button onClick={() => onMarker(eclipse.greatest)}>⭐ Greatest eclipse point</button>
+          <button onClick={() => onMarker(eclipse.greatest)}>Greatest eclipse point</button>
         )}
       </div>
 

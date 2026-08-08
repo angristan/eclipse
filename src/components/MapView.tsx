@@ -15,6 +15,43 @@ interface Props {
 
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] }
 
+const STYLE_URL = 'https://tiles.openfreemap.org/styles/dark'
+
+/**
+ * Recolor the stock dark basemap into the site's night-walnut palette so the
+ * map and the UI read as one material instead of two products.
+ */
+function warmize(style: Record<string, unknown>): Record<string, unknown> {
+  type Layer = { id: string; type: string; paint?: Record<string, unknown> }
+  for (const layer of (style.layers ?? []) as Layer[]) {
+    const paint = (layer.paint ??= {})
+    switch (layer.type) {
+      case 'background':
+        paint['background-color'] = '#141110'
+        break
+      case 'fill':
+        if (layer.id === 'water') paint['fill-color'] = '#0d0b0a'
+        else if (layer.id === 'building') {
+          paint['fill-color'] = '#211a16'
+          paint['fill-outline-color'] = '#211a16'
+        } else paint['fill-color'] = '#1a1512'
+        delete paint['fill-pattern']
+        break
+      case 'line':
+        if (layer.id.startsWith('boundary')) paint['line-color'] = '#6b5140'
+        else if (layer.id === 'waterway') paint['line-color'] = '#0d0b0a'
+        else if (layer.id.includes('casing')) paint['line-color'] = '#161210'
+        else paint['line-color'] = '#2b221c'
+        break
+      case 'symbol':
+        if (paint['text-color']) paint['text-color'] = layer.id === 'water_name' ? '#57707a' : '#b7a28c'
+        if (paint['text-halo-color']) paint['text-halo-color'] = '#141110'
+        break
+    }
+  }
+  return style
+}
+
 function ring(points: LngLat[]): FeatureCollection {
   if (points.length < 4) return EMPTY
   const closed = [...points, points[0]]
@@ -39,17 +76,30 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const map = new MlMap({
-      container: containerRef.current!,
-      style: 'https://tiles.openfreemap.org/styles/dark',
-      center: [0, 30],
-      zoom: 1.4,
-      attributionControl: { compact: true },
-    })
-    mapRef.current = map
-    map.on('error', (e) => console.error('map error', e.error?.message ?? e))
+    let cancelled = false
+    let map: MlMap | undefined
 
-    map.on('load', () => {
+    // Fetch the style first so it can be recolored before the map starts.
+    fetch(STYLE_URL)
+      .then((r) => r.json())
+      .then((styleJson) => {
+        if (cancelled) return
+        map = new MlMap({
+          container: containerRef.current!,
+          style: warmize(styleJson) as never,
+          center: [0, 30],
+          zoom: 1.4,
+          attributionControl: { compact: true },
+        })
+        setup(map)
+      })
+      .catch((err) => console.error('basemap load failed', err))
+
+    const setup = (map: MlMap) => {
+      mapRef.current = map
+      map.on('error', (e) => console.error('map error', e.error?.message ?? e))
+
+      map.on('load', () => {
       map.addSource('penumbra', { type: 'geojson', data: EMPTY })
       map.addSource('umbra', { type: 'geojson', data: EMPTY })
       map.addSource('band', { type: 'geojson', data: EMPTY })
@@ -59,13 +109,7 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
         id: 'penumbra-fill',
         type: 'fill',
         source: 'penumbra',
-        paint: { 'fill-color': '#d98a62', 'fill-opacity': 0.06 },
-      })
-      map.addLayer({
-        id: 'penumbra-edge',
-        type: 'line',
-        source: 'penumbra',
-        paint: { 'line-color': '#d98a62', 'line-opacity': 0.3, 'line-width': 1, 'line-dasharray': [2, 3] },
+        paint: { 'fill-color': '#d98a62', 'fill-opacity': 0.05 },
       })
       map.addLayer({
         id: 'band-fill',
@@ -98,12 +142,14 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
         paint: { 'line-color': '#d98a62', 'line-width': 1.5 },
       })
       setReady(true)
-    })
+      })
 
-    map.on('click', (e) => onPick({ lat: e.lngLat.lat, lng: e.lngLat.lng }))
+      map.on('click', (e) => onPick({ lat: e.lngLat.lat, lng: e.lngLat.lng }))
+    }
 
     return () => {
-      map.remove()
+      cancelled = true
+      map?.remove()
       mapRef.current = null
       setReady(false)
     }

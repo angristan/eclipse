@@ -159,8 +159,13 @@ export function centralPath(peak: AstroTime, hoursAround = 3, stepSeconds = 30):
 
     const n = projectToSurface(add(frame.center, scale(side, r)), frame.axis)
     const s = projectToSurface(add(frame.center, scale(side, -r)), frame.axis)
-    if (n) north.push(toLngLat(n, time))
-    if (s) south.push(toLngLat(s, time))
+    // Near sunrise/sunset the projection stretches without bound; keep the
+    // band only where both limits exist and stay in the same order of
+    // magnitude as the umbra itself, so the path ends cleanly.
+    if (n && s && norm(sub(n, s)) < 16 * r) {
+      north.push(toLngLat(n, time))
+      south.push(toLngLat(s, time))
+    }
   }
 
   return {
