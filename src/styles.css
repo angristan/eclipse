@@ -509,3 +509,60 @@ tr.below-horizon {
     bottom: 8px;
   }
 }
+
+/* ---------- eclipses visible from home ---------- */
+
+.from-home h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ds-muted);
+}
+
+.from-home ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 168px;
+  overflow-y: auto;
+  border-top: 1px solid var(--ds-line);
+}
+
+.from-home li button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--ds-line);
+  border-radius: 0;
+  color: var(--ds-ink);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background var(--motion-fast);
+}
+
+.from-home li button:hover {
+  background: rgba(244, 228, 206, 0.05);
+}
+
+.from-home li button.current {
+  background: rgba(246, 194, 92, 0.1);
+}
+
+.from-home li b {
+  font-weight: 500;
+  color: var(--ds-muted);
+}
+
+.from-home li b.strong {
+  color: var(--gold);
+  font-family: var(--font-display);
+  font-size: 15px;
+}

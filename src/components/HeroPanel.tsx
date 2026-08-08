@@ -1,6 +1,6 @@
 import { EclipseKind } from 'astronomy-engine'
 import { useEffect, useMemo, useState } from 'react'
-import type { Home, MarkerPos } from '../App'
+import type { Home, HomeVisibility, MarkerPos } from '../App'
 import type { EclipseEntry } from '../lib/catalog'
 import { countdownTo, fmtDateShort, fmtTime } from '../lib/format'
 import { localCircumstances } from '../lib/local'
@@ -9,8 +9,57 @@ interface Props {
   catalog: EclipseEntry[]
   eclipse: EclipseEntry
   home: Home | null
+  homeVisibility: HomeVisibility | null
   onSelect: (id: string) => void
   onMarker: (pos: MarkerPos | null) => void
+}
+
+function homeKindLabel(v: { kind: EclipseKind; obscuration: number }): string {
+  if (v.kind === EclipseKind.Total) return 'Total here'
+  if (v.kind === EclipseKind.Annular) return 'Annular here'
+  return `${Math.round(v.obscuration * 100)}%`
+}
+
+/** Upcoming eclipses actually visible from the visitor's home. */
+function FromHome({
+  catalog,
+  eclipse,
+  home,
+  homeVisibility,
+  onSelect,
+  onMarker,
+}: Props) {
+  const now = Date.now()
+  const rows = homeVisibility
+    ? catalog.filter((e) => homeVisibility[e.id] && e.peak.date.getTime() > now)
+    : []
+  if (!home || rows.length === 0) return null
+  return (
+    <div className="from-home">
+      <h3>Visible from {home.city ?? 'your location'}</h3>
+      <ul>
+        {rows.map((e) => {
+          const v = homeVisibility![e.id]
+          const strong = v.kind !== EclipseKind.Partial
+          return (
+            <li key={e.id}>
+              <button
+                className={e.id === eclipse.id ? 'current' : ''}
+                aria-current={e.id === eclipse.id ? 'true' : undefined}
+                onClick={() => {
+                  onSelect(e.id)
+                  onMarker({ lat: home.lat, lng: home.lng })
+                }}
+              >
+                <span>{fmtDateShort(e.peak.date)}</span>
+                <b className={strong ? 'strong' : ''}>{homeKindLabel(v)}</b>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
 }
 
 export const KIND_LABEL: Partial<Record<EclipseKind, string>> = {
@@ -98,7 +147,8 @@ function HomeLine({ eclipse, home, onMarker }: Pick<Props, 'eclipse' | 'home' | 
   )
 }
 
-export function HeroPanel({ catalog, eclipse, home, onSelect, onMarker }: Props) {
+export function HeroPanel(props: Props) {
+  const { catalog, eclipse, home, onSelect, onMarker } = props
   const geolocate = () =>
     navigator.geolocation?.getCurrentPosition((p) =>
       onMarker({ lat: p.coords.latitude, lng: p.coords.longitude }),
@@ -124,6 +174,8 @@ export function HeroPanel({ catalog, eclipse, home, onSelect, onMarker }: Props)
       <Countdown target={peakDate} />
 
       <HomeLine eclipse={eclipse} home={home} onMarker={onMarker} />
+
+      <FromHome {...props} />
 
       <div className="hero-controls">
         <select

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { EclipseKind } from 'astronomy-engine'
 import { buildCatalog, nextEclipse, type EclipseEntry } from './lib/catalog'
+import { localCircumstances } from './lib/local'
 import { centralPath, footprint, unwrapLngs } from './lib/shadow'
 import { HeroPanel } from './components/HeroPanel'
 import { MapView } from './components/MapView'
@@ -14,6 +16,9 @@ export interface MarkerPos {
 export interface Home extends MarkerPos {
   city: string | null
 }
+
+/** What each catalog eclipse looks like from the visitor's home, by id. */
+export type HomeVisibility = Record<string, { kind: EclipseKind; obscuration: number }>
 
 /** Slider range around the eclipse peak, in minutes. */
 export const WINDOW_MIN = 180
@@ -39,6 +44,7 @@ export function App() {
   const [offsetMin, setOffsetMin] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [home, setHome] = useState<Home | null>(null)
+  const [homeVisibility, setHomeVisibility] = useState<HomeVisibility | null>(null)
 
   // Coarse edge geolocation: personalizes the forecast with no permission
   // prompt. Fails silently outside the deployed Worker (e.g. vite dev).
@@ -52,6 +58,22 @@ export function App() {
       })
       .catch(() => {})
   }, [])
+
+  // Sweep the whole catalog for the home location, off the first paint.
+  useEffect(() => {
+    if (!home) return
+    const t = setTimeout(() => {
+      const out: HomeVisibility = {}
+      for (const e of catalog) {
+        const info = localCircumstances(e, home.lat, home.lng)
+        if (info && info.peak.altitude > 0 && info.obscuration > 0.005) {
+          out[e.id] = { kind: info.kind, obscuration: info.obscuration }
+        }
+      }
+      setHomeVisibility(out)
+    }, 50)
+    return () => clearTimeout(t)
+  }, [home, catalog])
 
   const eclipse = catalog.find((e) => e.id === eclipseId)!
   const path = useMemo(() => centralPath(eclipse.peak, WINDOW_MIN / 60), [eclipse])
@@ -108,6 +130,7 @@ export function App() {
         catalog={catalog}
         eclipse={eclipse}
         home={home}
+        homeVisibility={homeVisibility}
         onSelect={selectEclipse}
         onMarker={setMarker}
       />
