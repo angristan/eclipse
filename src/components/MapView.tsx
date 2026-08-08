@@ -115,12 +115,6 @@ export function MapView({ path, bands, footprints, marker, onPick, fitKey }: Pro
         paint: { 'fill-color': '#e89a5d', 'fill-opacity': 0.04 },
       })
       map.addLayer({
-        id: 'coverage-edge',
-        type: 'line',
-        source: 'coverage',
-        paint: { 'line-color': '#e89a5d', 'line-opacity': 0.18, 'line-width': 0.8 },
-      })
-      map.addLayer({
         id: 'penumbra-fill',
         type: 'fill',
         source: 'penumbra',

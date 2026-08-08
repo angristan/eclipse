@@ -241,20 +241,56 @@ export function coverageBands(
   }
   if (samples.length < 2) return []
 
+  const radiusAt = (frame: ShadowFrame, m: number) =>
+    frame.penumbraKm - m * (frame.penumbraKm - Math.abs(frame.umbraKm))
+
   return magnitudes.map((m) => {
+    // Keep only instants where this magnitude's circle can touch Earth;
+    // otherwise entry/exit samples smear clamped junk along the limb.
+    const kept = samples.filter((s) => norm(s.frame.center) < EARTH_A + radiusAt(s.frame, m))
+    if (kept.length < 2) return { magnitude: m, ring: [] }
+
+    const sideAt = (i: number) => {
+      const prev = kept[Math.max(0, i - 1)].frame.center
+      const next = kept[Math.min(kept.length - 1, i + 1)].frame.center
+      const tangent = normalize(sub(next, prev))
+      return { tangent, side: normalize(cross(kept[i].frame.axis, tangent)) }
+    }
+
     const north: LngLat[] = []
     const south: LngLat[] = []
-    for (let i = 0; i < samples.length; i++) {
-      const { time, frame } = samples[i]
-      const prev = samples[Math.max(0, i - 1)].frame.center
-      const next = samples[Math.min(samples.length - 1, i + 1)].frame.center
-      const tangent = normalize(sub(next, prev))
-      const side = normalize(cross(frame.axis, tangent))
-      const d = frame.penumbraKm - m * (frame.penumbraKm - Math.abs(frame.umbraKm))
+    for (let i = 0; i < kept.length; i++) {
+      const { time, frame } = kept[i]
+      const { side } = sideAt(i)
+      const d = radiusAt(frame, m)
       north.push(toLngLat(projectOrLimb(add(frame.center, scale(side, d)), frame.axis), time))
       south.push(toLngLat(projectOrLimb(add(frame.center, scale(side, -d)), frame.axis), time))
     }
-    return { magnitude: m, ring: [...north, ...south.reverse(), north[0]] }
+
+    // Rounded end caps: half-circles of radius d around the first/last kept
+    // instants, so the zone ends in lobes instead of pinches or chords.
+    const cap = (i: number, forward: 1 | -1): LngLat[] => {
+      const { time, frame } = kept[i]
+      const { tangent, side } = sideAt(i)
+      const d = radiusAt(frame, m)
+      const arc: LngLat[] = []
+      const steps = 16
+      for (let k = 1; k < steps; k++) {
+        const phi = (Math.PI * k) / steps
+        const dir = add(
+          scale(side, Math.cos(phi) * forward),
+          scale(tangent, Math.sin(phi) * forward),
+        )
+        arc.push(toLngLat(projectOrLimb(add(frame.center, scale(dir, d)), frame.axis), time))
+      }
+      return arc
+    }
+
+    return {
+      magnitude: m,
+      // north forward → end cap → south backward → start cap → close.
+      ring: [...north, ...cap(kept.length - 1, 1), ...south.reverse(), ...cap(0, -1), north[0]],
+    }
   })
 }
 
