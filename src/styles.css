@@ -16,7 +16,7 @@
   --ds-accent: #d98a62;
   --ds-sky: #8fb8c4;
   --gold: #f6c25c;
-  --ds-glass: rgba(23, 18, 16, 0.6);
+  --ds-glass: rgba(23, 18, 16, 0.57);
   --ds-glass-border: rgba(244, 228, 206, 0.16);
   --ds-highlight: rgba(244, 228, 206, 0.09);
   --motion-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
@@ -78,8 +78,8 @@ a {
 .panel {
   position: absolute;
   background: var(--ds-glass);
-  backdrop-filter: blur(26px) saturate(1.28) brightness(1.04) contrast(1.02);
-  -webkit-backdrop-filter: blur(26px) saturate(1.28) brightness(1.04) contrast(1.02);
+  backdrop-filter: blur(26px) saturate(1.28) brightness(1.05) contrast(1.02);
+  -webkit-backdrop-filter: blur(26px) saturate(1.28) brightness(1.05) contrast(1.02);
   border: 1px solid var(--ds-glass-border);
   border-radius: 18px;
   box-shadow:
@@ -361,8 +361,8 @@ tr.below-horizon {
   align-items: center;
   gap: 12px;
   background: var(--ds-glass);
-  backdrop-filter: blur(26px) saturate(1.28) brightness(1.04) contrast(1.02);
-  -webkit-backdrop-filter: blur(26px) saturate(1.28) brightness(1.04) contrast(1.02);
+  backdrop-filter: blur(26px) saturate(1.28) brightness(1.05) contrast(1.02);
+  -webkit-backdrop-filter: blur(26px) saturate(1.28) brightness(1.05) contrast(1.02);
   border: 1px solid var(--ds-glass-border);
   border-radius: 14px;
   box-shadow:
