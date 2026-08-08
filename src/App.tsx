@@ -18,7 +18,13 @@ export interface Home extends MarkerPos {
 }
 
 /** What each catalog eclipse looks like from one reference point, by id. */
-export type Visibility = Record<string, { kind: EclipseKind; obscuration: number }>
+export interface LocalView {
+  kind: EclipseKind
+  obscuration: number
+  /** Length of totality/annularity at the point, seconds; null for partial views. */
+  durationSec: number | null
+}
+export type Visibility = Record<string, LocalView>
 
 /** Where the catalog visibility is computed from, with a display label. */
 export interface VisibleFrom {
@@ -85,7 +91,14 @@ export function App() {
       for (const e of catalog) {
         const info = localCircumstances(e, lat, lng)
         if (info && info.peak.altitude > 0 && info.obscuration > 0.005) {
-          out[e.id] = { kind: info.kind, obscuration: info.obscuration }
+          out[e.id] = {
+            kind: info.kind,
+            obscuration: info.obscuration,
+            durationSec:
+              info.total_begin && info.total_end
+                ? (info.total_end.time.ut - info.total_begin.time.ut) * 86400
+                : null,
+          }
         }
       }
       setVisibility(out)

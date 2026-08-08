@@ -102,7 +102,8 @@ a {
 .hero {
   top: 12px;
   left: 12px;
-  width: 350px;
+  bottom: 12px;
+  width: 356px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -471,10 +472,16 @@ tr.below-horizon {
     left: 8px;
     right: 8px;
     top: 8px;
+    bottom: auto;
+    max-height: 56%;
     width: auto;
     border-radius: 14px;
     padding: 14px;
     gap: 10px;
+  }
+
+  .catalog-scroll {
+    min-height: 90px;
   }
 
   .hero h1 {
@@ -510,9 +517,16 @@ tr.below-horizon {
   }
 }
 
-/* ---------- eclipses visible from home ---------- */
+/* ---------- scrollable eclipse timeline ---------- */
 
-.from-home h3 {
+.catalog {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.catalog h3 {
   margin: 0 0 6px;
   font-size: 11px;
   font-weight: 600;
@@ -521,48 +535,83 @@ tr.below-horizon {
   color: var(--ds-muted);
 }
 
-.from-home ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: 168px;
-  overflow-y: auto;
-  border-top: 1px solid var(--ds-line);
+.catalog h3 span {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
-.from-home li button {
-  display: flex;
+.catalog-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-top: 1px solid var(--ds-line);
+  scrollbar-width: thin;
+  scrollbar-color: var(--ds-line-strong) transparent;
+}
+
+.catalog-scroll h4 {
+  margin: 12px 0 2px;
+  font-size: 17px;
+  color: var(--ds-muted);
+}
+
+.catalog-scroll section:first-child h4 {
+  margin-top: 8px;
+}
+
+.catalog .row {
+  display: grid;
+  grid-template-columns: 58px 56px 1fr;
   align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
-  padding: 6px 4px;
+  padding: 6px 6px 6px 8px;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--ds-line);
+  border-left: 2px solid transparent;
   border-radius: 0;
   color: var(--ds-ink);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
+  text-align: left;
   cursor: pointer;
   transition: background var(--motion-fast);
 }
 
-.from-home li button:hover {
+.catalog .row:hover {
   background: rgba(244, 228, 206, 0.05);
 }
 
-.from-home li button.current {
+.catalog .row.current {
   background: rgba(246, 194, 92, 0.1);
+  border-left-color: var(--gold);
 }
 
-.from-home li b {
-  font-weight: 500;
+.catalog .row.past {
+  opacity: 0.55;
+}
+
+.row-kind {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
   color: var(--ds-muted);
 }
 
-.from-home li b.strong {
+.row-local {
+  text-align: right;
+  color: var(--ds-ink);
+}
+
+.row-local.strong {
   color: var(--gold);
   font-family: var(--font-display);
   font-size: 15px;
+}
+
+.row-local.none {
+  color: var(--ds-muted);
+  opacity: 0.7;
+  font-size: 12px;
 }

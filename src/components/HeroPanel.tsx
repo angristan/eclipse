@@ -2,7 +2,8 @@ import { EclipseKind } from 'astronomy-engine'
 import { useEffect, useMemo, useState } from 'react'
 import type { Home, MarkerPos, Visibility, VisibleFrom } from '../App'
 import type { EclipseEntry } from '../lib/catalog'
-import { countdownTo, fmtDateShort, fmtTime } from '../lib/format'
+import { countdownTo, fmtTime } from '../lib/format'
+import { EclipseList } from './EclipseList'
 import { localCircumstances } from '../lib/local'
 
 interface Props {
@@ -13,47 +14,6 @@ interface Props {
   visibleFrom: VisibleFrom | null
   onSelect: (id: string) => void
   onMarker: (pos: MarkerPos | null) => void
-}
-
-function kindAtLabel(v: { kind: EclipseKind; obscuration: number }): string {
-  if (v.kind === EclipseKind.Total) return 'Total here'
-  if (v.kind === EclipseKind.Annular) return 'Annular here'
-  return `${Math.round(v.obscuration * 100)}%`
-}
-
-/** Upcoming eclipses actually visible from the pinned point. */
-function FromHere({ catalog, eclipse, visibility, visibleFrom, onSelect, onMarker }: Props) {
-  const now = Date.now()
-  const rows = visibility
-    ? catalog.filter((e) => visibility[e.id] && e.peak.date.getTime() > now)
-    : []
-  if (!visibleFrom || rows.length === 0) return null
-  return (
-    <div className="from-home">
-      <h3>Visible from {visibleFrom.label ?? 'the pinned spot'}</h3>
-      <ul>
-        {rows.map((e) => {
-          const v = visibility![e.id]
-          const strong = v.kind !== EclipseKind.Partial
-          return (
-            <li key={e.id}>
-              <button
-                className={e.id === eclipse.id ? 'current' : ''}
-                aria-current={e.id === eclipse.id ? 'true' : undefined}
-                onClick={() => {
-                  onSelect(e.id)
-                  onMarker(visibleFrom.point)
-                }}
-              >
-                <span>{fmtDateShort(e.peak.date)}</span>
-                <b className={strong ? 'strong' : ''}>{kindAtLabel(v)}</b>
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-    </div>
-  )
 }
 
 export const KIND_LABEL: Partial<Record<EclipseKind, string>> = {
@@ -169,20 +129,7 @@ export function HeroPanel(props: Props) {
 
       <HomeLine eclipse={eclipse} home={home} onMarker={onMarker} />
 
-      <FromHere {...props} />
-
       <div className="hero-controls">
-        <select
-          value={eclipse.id}
-          onChange={(e) => onSelect(e.target.value)}
-          aria-label="Choose an eclipse"
-        >
-          {catalog.map((e) => (
-            <option key={e.id} value={e.id}>
-              {fmtDateShort(e.peak.date)} — {KIND_LABEL[e.kind] ?? e.kind}
-            </option>
-          ))}
-        </select>
         <div className="hero-actions">
           <button className="btn btn-primary" onClick={geolocate}>
             <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -199,6 +146,14 @@ export function HeroPanel(props: Props) {
           )}
         </div>
       </div>
+
+      <EclipseList
+        catalog={catalog}
+        eclipse={eclipse}
+        visibility={props.visibility}
+        visibleFrom={props.visibleFrom}
+        onSelect={onSelect}
+      />
 
       <details className="about">
         <summary>About</summary>
