@@ -59,31 +59,31 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
         id: 'penumbra-fill',
         type: 'fill',
         source: 'penumbra',
-        paint: { 'fill-color': '#fdb813', 'fill-opacity': 0.07 },
+        paint: { 'fill-color': '#d98a62', 'fill-opacity': 0.06 },
       })
       map.addLayer({
         id: 'penumbra-edge',
         type: 'line',
         source: 'penumbra',
-        paint: { 'line-color': '#fdb813', 'line-opacity': 0.35, 'line-width': 1, 'line-dasharray': [2, 3] },
+        paint: { 'line-color': '#d98a62', 'line-opacity': 0.3, 'line-width': 1, 'line-dasharray': [2, 3] },
       })
       map.addLayer({
         id: 'band-fill',
         type: 'fill',
         source: 'band',
-        paint: { 'fill-color': '#ff5533', 'fill-opacity': 0.18 },
+        paint: { 'fill-color': '#d98a62', 'fill-opacity': 0.16 },
       })
       map.addLayer({
         id: 'band-edge',
         type: 'line',
         source: 'band',
-        paint: { 'line-color': '#ff5533', 'line-opacity': 0.6, 'line-width': 1 },
+        paint: { 'line-color': '#a95f3d', 'line-opacity': 0.8, 'line-width': 1 },
       })
       map.addLayer({
         id: 'center-line',
         type: 'line',
         source: 'center-line',
-        paint: { 'line-color': '#ffd166', 'line-width': 1.6, 'line-dasharray': [3, 2] },
+        paint: { 'line-color': '#f4e4ce', 'line-opacity': 0.85, 'line-width': 1.4, 'line-dasharray': [3, 2] },
       })
       map.addLayer({
         id: 'umbra-fill',
@@ -95,7 +95,7 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
         id: 'umbra-edge',
         type: 'line',
         source: 'umbra',
-        paint: { 'line-color': '#ff5533', 'line-width': 1.5 },
+        paint: { 'line-color': '#d98a62', 'line-width': 1.5 },
       })
       setReady(true)
     })
@@ -155,7 +155,7 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
       return
     }
     if (!markerRef.current) {
-      markerRef.current = new Marker({ color: '#ffd166', draggable: true })
+      markerRef.current = new Marker({ color: '#69c1b5', draggable: true })
         .setLngLat([marker.lng, marker.lat])
         .addTo(mapRef.current!)
       markerRef.current.on('dragend', () => {

@@ -21,7 +21,7 @@ export function SunSim({ view }: { view: SunMoonView }) {
         </defs>
         {total && <circle cx={110} cy={110} r={R * 1.8} fill="url(#corona)" />}
         <circle cx={110} cy={110} r={R} fill="#ffd166" />
-        <circle cx={mx} cy={my} r={view.moonRadius * scale} fill="#0b0e14" stroke="#2a2f3a" strokeWidth="0.5" />
+        <circle cx={mx} cy={my} r={view.moonRadius * scale} fill="#13100f" stroke="#49392f" strokeWidth="0.5" />
       </svg>
       <div className="sun-sim-label">
         {(view.obscuration * 100).toFixed(1)}% of the Sun covered

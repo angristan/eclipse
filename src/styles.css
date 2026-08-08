@@ -1,11 +1,24 @@
+/*
+ * Warm material tokens from Stan's design system (design/content/foundations.md).
+ * Product exception: single designed dark mode (night walnut) — an eclipse map
+ * is a night-sky product, so no light mode is offered.
+ */
 :root {
-  --bg: #0b0e14;
-  --panel: #11151f;
-  --border: #232936;
-  --text: #e8eaf0;
-  --muted: #8b93a5;
-  --accent: #ffd166;
-  --hot: #ff5533;
+  --ds-canvas: #13100f;
+  --ds-paper: #211a17;
+  --ds-paper-muted: #1b1614;
+  --ds-paper-strong: #33251f;
+  --ds-ink: #f4e4ce;
+  --ds-muted: #cdb9a5;
+  --ds-line: #49392f;
+  --ds-line-strong: #755c4d;
+  --ds-accent: #d98a62;
+  --ds-accent-border: #a95f3d;
+  --ds-sage: #69c1b5;
+  --ds-sky: #8fb8c4;
+  --ds-glass: rgba(33, 26, 23, 0.44);
+  --ds-highlight: rgba(244, 228, 206, 0.08);
+  --motion-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
   color-scheme: dark;
 }
 
@@ -21,11 +34,16 @@ body,
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
+  background: var(--ds-canvas);
+  color: var(--ds-ink);
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 15px;
   line-height: 1.45;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ds-sage);
+  outline-offset: 2px;
 }
 
 .app {
@@ -33,30 +51,30 @@ body {
   height: 100%;
 }
 
-/* ---------- sidebar ---------- */
+/* ---------- sidebar (solid work surface) ---------- */
 
 .sidebar {
   width: 360px;
   flex: none;
   overflow-y: auto;
-  padding: 20px;
-  background: var(--panel);
-  border-right: 1px solid var(--border);
+  padding: 24px 18px;
+  background: var(--ds-paper);
+  border-right: 1px solid var(--ds-line-strong);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .sidebar h1 {
   font-size: 22px;
-  margin: 0 0 6px;
+  margin: 0 0 8px;
 }
 
 .sidebar h2 {
-  font-size: 13px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--muted);
+  color: var(--ds-muted);
   margin: 0 0 8px;
 }
 
@@ -66,40 +84,40 @@ body {
 }
 
 .muted {
-  color: var(--muted);
+  color: var(--ds-muted);
 }
 
 .field span {
   display: block;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-muted);
   margin-bottom: 4px;
 }
 
 .field select {
   width: 100%;
   padding: 8px 10px;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--ds-paper-muted);
+  color: var(--ds-ink);
+  border: 1px solid var(--ds-line-strong);
+  border-radius: 6px;
   font-size: 14px;
 }
 
 .countdown {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 8px;
   font-size: 30px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
-  color: var(--accent);
+  color: var(--ds-accent);
 }
 
 .countdown small {
   font-size: 14px;
   font-weight: 400;
-  color: var(--muted);
+  color: var(--ds-muted);
   margin-left: 2px;
 }
 
@@ -110,7 +128,7 @@ body {
 .countdown.past {
   font-size: 15px;
   font-weight: 500;
-  color: var(--muted);
+  color: var(--ds-muted);
 }
 
 .facts {
@@ -134,33 +152,40 @@ body {
 .actions button,
 .time-slider button {
   padding: 7px 12px;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--ds-paper-strong);
+  color: var(--ds-ink);
+  border: 1px solid var(--ds-line-strong);
+  border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
+  box-shadow: 0 1px 0 var(--ds-highlight) inset;
+  transition: border-color var(--motion-fast), transform var(--motion-fast);
 }
 
 .actions button:hover,
 .time-slider button:hover {
-  border-color: var(--accent);
+  border-color: var(--ds-sage);
+}
+
+.actions button:active,
+.time-slider button:active {
+  transform: translateY(1px);
 }
 
 .observer {
-  border-top: 1px solid var(--border);
-  padding-top: 14px;
+  border-top: 1px solid var(--ds-line);
+  padding-top: 18px;
 }
 
 .coords {
   font-variant-numeric: tabular-nums;
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
 
 button.link {
   background: none;
   border: none;
-  color: var(--accent);
+  color: var(--ds-sky);
   cursor: pointer;
   font-size: 12px;
   margin-left: 8px;
@@ -169,7 +194,7 @@ button.link {
 
 .stat-row {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 12px;
 }
@@ -177,11 +202,11 @@ button.link {
 .stat b {
   display: block;
   font-size: 18px;
-  color: var(--accent);
+  color: var(--ds-ink);
 }
 
 .stat small {
-  color: var(--muted);
+  color: var(--ds-muted);
   font-size: 11.5px;
 }
 
@@ -194,12 +219,12 @@ table.contacts {
 
 table.contacts td {
   padding: 5px 4px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--ds-line);
 }
 
 table.contacts td:last-child {
   text-align: right;
-  color: var(--muted);
+  color: var(--ds-muted);
 }
 
 tr.below-horizon {
@@ -223,21 +248,21 @@ tr.below-horizon {
 
 .sun-sim-label {
   font-size: 12.5px;
-  color: var(--muted);
+  color: var(--ds-muted);
 }
 
 .sidebar footer {
   margin-top: auto;
   font-size: 12px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--ds-line);
   padding-top: 12px;
 }
 
 .sidebar a {
-  color: var(--accent);
+  color: var(--ds-sky);
 }
 
-/* ---------- map + slider ---------- */
+/* ---------- map + floating glass slider ---------- */
 
 .map-pane {
   flex: 1;
@@ -254,21 +279,33 @@ tr.below-horizon {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 22px;
+  bottom: 18px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: color-mix(in srgb, var(--panel) 88%, transparent);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 14px;
-  width: min(640px, calc(100% - 32px));
+  gap: 12px;
+  background: var(--ds-glass);
+  backdrop-filter: blur(26px) saturate(1.28) brightness(1.04) contrast(1.02);
+  -webkit-backdrop-filter: blur(26px) saturate(1.28) brightness(1.04) contrast(1.02);
+  border: 1px solid var(--ds-line-strong);
+  border-radius: 14px;
+  box-shadow:
+    0 1px 0 var(--ds-highlight) inset,
+    0 8px 24px rgba(0, 0, 0, 0.35);
+  padding: 12px 14px;
+  width: min(640px, calc(100% - 24px));
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .time-slider {
+    background: var(--ds-paper);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 .time-slider input[type='range'] {
   flex: 1;
-  accent-color: var(--accent);
+  accent-color: var(--ds-sage);
 }
 
 .time-slider .play {
@@ -285,13 +322,13 @@ tr.below-horizon {
 }
 
 .time-slider .clock small {
-  color: var(--muted);
+  color: var(--ds-muted);
   font-size: 10.5px;
 }
 
 /* ---------- mobile ---------- */
 
-@media (max-width: 760px) {
+@media (max-width: 43.75em) {
   .app {
     flex-direction: column-reverse;
   }
@@ -300,7 +337,7 @@ tr.below-horizon {
     width: 100%;
     height: 45%;
     border-right: none;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--ds-line-strong);
   }
 
   .map-pane {
