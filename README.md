@@ -11,6 +11,10 @@ where you are** — using Cloudflare's coarse edge geolocation (city-level, no p
 prompt, nothing stored). If your spot only gets a partial view, one click jumps you to
 the nearest point on the center line.
 
+Navigation is a **time wheel**: spin through every eclipse from 2023 to 2035, each one
+annotated with what it looks like from the pinned point — the eclipse that settles in
+the lens loads on the map.
+
 ![Screenshot](docs/screenshot.png)
 
 ## How it works
