@@ -112,14 +112,6 @@ export function HeroPanel(props: Props) {
 
   return (
     <section className="panel hero" aria-label="Eclipse selection">
-      <header className="brand">
-        <svg viewBox="0 0 64 64" aria-hidden="true">
-          <circle cx="32" cy="32" r="26" fill="#f6c25c" />
-          <circle cx="41" cy="25" r="24" fill="#171210" />
-        </svg>
-        <span>Eclipse Tracker</span>
-      </header>
-
       <h1 className="display">
         {KIND_LABEL[eclipse.kind] ?? eclipse.kind} solar eclipse
         <em>{peakDate.toLocaleDateString(undefined, { month: 'long' })} {peakDate.getUTCDate()}, {peakDate.getUTCFullYear()}</em>
