@@ -160,7 +160,6 @@ export function App() {
       <HeroPanel
         catalog={catalog}
         eclipse={eclipse}
-        home={home}
         marker={marker}
         visibility={visibility}
         visibleFrom={visibleFrom}

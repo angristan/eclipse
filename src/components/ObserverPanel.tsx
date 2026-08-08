@@ -72,6 +72,18 @@ export function ObserverPanel({ eclipse, marker, home, path, simTime, onMarker, 
           {Math.abs(marker.lat).toFixed(2)}°{marker.lat >= 0 ? 'N' : 'S'}{' '}
           {Math.abs(marker.lng).toFixed(2)}°{marker.lng >= 0 ? 'E' : 'W'}
         </span>
+        <button
+          className="btn btn-ghost btn-icon"
+          onClick={() =>
+            navigator.geolocation?.getCurrentPosition((p) =>
+              onMarker({ lat: p.coords.latitude, lng: p.coords.longitude }),
+            )
+          }
+          title="Use my precise location"
+          aria-label="Use my precise location"
+        >
+          <CrosshairIcon />
+        </button>
         <button className="link" onClick={onClear} aria-label="Clear selected point">
           clear
         </button>
@@ -129,7 +141,9 @@ export function ObserverPanel({ eclipse, marker, home, path, simTime, onMarker, 
               ))}
             </tbody>
           </table>
-          <p className="muted tz-note">Times in your timezone ({browserZone}).</p>
+          <p className="muted tz-note">
+            Times in your timezone ({browserZone}) · global peak {fmtTime(eclipse.peak.date)}
+          </p>
 
           {nearest && nearest.km > 25 && (
             <button

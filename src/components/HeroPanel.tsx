@@ -1,15 +1,14 @@
 import { EclipseKind } from 'astronomy-engine'
 import { useEffect, useMemo, useState } from 'react'
-import type { Home, MarkerPos, Visibility, VisibleFrom } from '../App'
+import type { MarkerPos, Visibility, VisibleFrom } from '../App'
 import type { EclipseEntry } from '../lib/catalog'
-import { countdownTo, fmtTime } from '../lib/format'
+import { countdownTo } from '../lib/format'
 import { EclipseList } from './EclipseList'
 import { localCircumstances } from '../lib/local'
 
 interface Props {
   catalog: EclipseEntry[]
   eclipse: EclipseEntry
-  home: Home | null
   marker: MarkerPos | null
   visibility: Visibility | null
   visibleFrom: VisibleFrom | null
@@ -76,55 +75,14 @@ function Countdown({ target }: { target: Date }) {
   )
 }
 
-/** One personal line: what this eclipse means at the visitor's own location. */
-function HomeLine({ eclipse, home, onMarker }: Pick<Props, 'eclipse' | 'home' | 'onMarker'>) {
-  const info = useMemo(
-    () => (home ? localCircumstances(eclipse, home.lat, home.lng) : null),
-    [eclipse, home],
-  )
-  if (!home) return null
-  const place = home.city ?? 'your location'
-
-  let text: string
-  if (!info || info.peak.altitude < 0) {
-    text = `Not visible from ${place}`
-  } else if (info.kind === EclipseKind.Total) {
-    text = `${place} is in the path of totality — ${fmtTime(info.peak.time.date)}`
-  } else if (info.kind === EclipseKind.Annular) {
-    text = `Ring of fire over ${place} at ${fmtTime(info.peak.time.date)}`
-  } else {
-    text = `From ${place}: ${(info.obscuration * 100).toFixed(0)}% covered at ${fmtTime(info.peak.time.date)}`
-  }
-
-  return (
-    <button
-      className="home-line"
-      onClick={() => onMarker({ lat: home.lat, lng: home.lng })}
-      title="Show details for your location"
-    >
-      <svg viewBox="0 0 16 16" aria-hidden="true">
-        <circle cx="8" cy="8" r="2.4" fill="currentColor" />
-        <circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" strokeWidth="1.2" />
-        <path d="M8 0v2.4M8 13.6V16M0 8h2.4M13.6 8H16" stroke="currentColor" strokeWidth="1.2" />
-      </svg>
-      {text}
-    </button>
-  )
-}
-
 export function HeroPanel(props: Props) {
-  const { catalog, eclipse, home, marker, onSelect, onMarker } = props
+  const { eclipse, marker } = props
   // The countdown targets the maximum at the pinned spot when there is one.
   const pinInfo = useMemo(
     () => (marker ? localCircumstances(eclipse, marker.lat, marker.lng) : null),
     [eclipse, marker],
   )
   const countdownTarget = pinInfo?.peak.time.date ?? eclipse.peak.date
-  const geolocate = () =>
-    navigator.geolocation?.getCurrentPosition((p) =>
-      onMarker({ lat: p.coords.latitude, lng: p.coords.longitude }),
-    )
-
   const peakDate = eclipse.peak.date
 
   return (
@@ -138,33 +96,17 @@ export function HeroPanel(props: Props) {
       <p className="peak-line">
         {marker
           ? pinInfo
-            ? `until your maximum, ${fmtTime(pinInfo.peak.time.date)} · global peak ${fmtTime(eclipse.peak.date)}`
-            : 'until the global peak — this eclipse is not visible from your spot'
-          : 'until the global peak — click the map for your local times'}
+            ? 'until the maximum at your pin'
+            : 'until the global peak — not visible from your pin'
+          : 'until the global peak — click the map for local times'}
       </p>
 
-      <HomeLine eclipse={eclipse} home={home} onMarker={onMarker} />
-
-      <div className="hero-controls">
-        <div className="hero-actions">
-          <button className="btn btn-primary" onClick={geolocate}>
-            <CrosshairIcon />
-            Precise location
-          </button>
-          {eclipse.greatest && (
-            <button className="btn btn-ghost" onClick={() => onMarker(eclipse.greatest)}>
-              Greatest eclipse
-            </button>
-          )}
-        </div>
-      </div>
-
       <EclipseList
-        catalog={catalog}
+        catalog={props.catalog}
         eclipse={eclipse}
         visibility={props.visibility}
         visibleFrom={props.visibleFrom}
-        onSelect={onSelect}
+        onSelect={props.onSelect}
       />
 
       <details className="about">
