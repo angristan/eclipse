@@ -66,3 +66,38 @@ describe('nearest central line', () => {
     expect(nearest!.km).toBeLessThan(400)
   })
 })
+
+describe('footprint rings', () => {
+  it('closes the penumbra ring without long chords near the limb', async () => {
+    const { footprint, haversineKm } = await import('./shadow')
+    // One hour before peak the penumbra is partially off Earth.
+    const ring = footprint(eclipse2026.peak.AddDays(-60 / 1440), 'penumbra')
+    expect(ring.length).toBeGreaterThan(100)
+    for (let i = 1; i < ring.length; i++) {
+      expect(haversineKm(ring[i - 1], ring[i])).toBeLessThan(1500)
+    }
+  })
+
+  it('returns an empty ring when the shadow is entirely off Earth', async () => {
+    const { footprint } = await import('./shadow')
+    const ring = footprint(eclipse2026.peak.AddDays(1), 'penumbra')
+    expect(ring).toEqual([])
+  })
+})
+
+describe('polarClose', () => {
+  it('caps a pole-encircling ring and leaves normal rings alone', async () => {
+    const { polarClose, unwrapLngs, footprint } = await import('./shadow')
+    // Synthetic ring around the north pole.
+    const around: [number, number][] = [[0, 80], [120, 80], [240, 80], [360, 80]]
+    const capped = polarClose(around)
+    expect(capped.length).toBe(6)
+    expect(capped[4][1]).toBeCloseTo(89.99)
+    // A real mid-latitude ring is unchanged.
+    const ring = unwrapLngs(footprint(eclipse2026.peak, 'umbra'))
+    expect(polarClose(ring)).toEqual(ring)
+    // The -72min penumbra encircles the pole and gets capped.
+    const polar = unwrapLngs(footprint(eclipse2026.peak.AddDays(-72 / 1440), 'penumbra'))
+    expect(polarClose(polar).length).toBe(polar.length + 2)
+  })
+})

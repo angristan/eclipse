@@ -22,6 +22,8 @@ import {
   add,
   cross,
   dot,
+  EARTH_A,
+  EARTH_B,
   intersectEllipsoid,
   MOON_RADIUS_KM,
   norm,
@@ -97,8 +99,10 @@ function projectToSurface(p: Vec3, axis: Vec3): Vec3 | null {
 
 /**
  * Outline of the umbra or penumbra footprint at one instant, as a ring of
- * geographic points. Cone-boundary points that miss the Earth are dropped, so
- * the ring may be partial near the limb. Empty when the shadow is off Earth.
+ * geographic points. Rim rays that miss the Earth are clamped to the limb
+ * (the day/night edge as seen along the shadow axis) so the ring always
+ * closes cleanly instead of cutting chords across the map. Empty when the
+ * shadow does not touch Earth at all.
  */
 export function footprint(time: AstroTime, kind: 'umbra' | 'penumbra', samples = 120): LngLat[] {
   const f = shadowFrame(time)
@@ -108,13 +112,26 @@ export function footprint(time: AstroTime, kind: 'umbra' | 'penumbra', samples =
   const u = normalize(cross(f.axis, vec(0, 0, 1)))
   const v = cross(f.axis, u)
   const ring: LngLat[] = []
+  let hits = 0
   for (let i = 0; i <= samples; i++) {
     const a = (2 * Math.PI * i) / samples
-    const rim = add(f.center, add(scale(u, radius * Math.cos(a)), scale(v, radius * Math.sin(a))))
+    const dir = add(scale(u, Math.cos(a)), scale(v, Math.sin(a)))
+    const rim = add(f.center, scale(dir, radius))
     const hit = projectToSurface(rim, f.axis)
-    if (hit) ring.push(toLngLat(hit, time))
+    if (hit) {
+      hits++
+      ring.push(toLngLat(hit, time))
+    } else {
+      // Clamp to the Earth's silhouette as seen along the axis: keep the
+      // rim's component perpendicular to the axis and scale it onto the
+      // ellipsoid. Continuous with grazing hits, so no chords appear.
+      const w = normalize(sub(rim, scale(f.axis, dot(rim, f.axis))))
+      const k = 1 / Math.sqrt((w.x * w.x + w.y * w.y) / (EARTH_A * EARTH_A) + (w.z * w.z) / (EARTH_B * EARTH_B))
+      ring.push(toLngLat(scale(w, k), time))
+    }
   }
-  return ring
+  // No rim ray reaches the surface: the shadow is not on Earth.
+  return hits > 0 ? ring : []
 }
 
 export interface CentralPath {
@@ -174,6 +191,22 @@ export function centralPath(peak: AstroTime, hoursAround = 3, stepSeconds = 30):
     startUt: samples[0].time.ut,
     endUt: samples[samples.length - 1].time.ut,
   }
+}
+
+/**
+ * Close a ring that encircles a pole. After unwrapping, such a ring ends
+ * ~360° of longitude away from where it started; rendering it directly draws
+ * a spurious horizontal band across the map. Capping it toward the pole makes
+ * it a valid Mercator polygon. Rings that don't wrap are returned unchanged.
+ */
+export function polarClose(ring: LngLat[]): LngLat[] {
+  if (ring.length < 3) return ring
+  const first = ring[0]
+  const last = ring[ring.length - 1]
+  if (Math.abs(last[0] - first[0]) < 180) return ring
+  const meanLat = ring.reduce((s, p) => s + p[1], 0) / ring.length
+  const capLat = meanLat > 0 ? 89.99 : -89.99
+  return [...ring, [last[0], capLat], [first[0], capLat]]
 }
 
 const EARTH_MEAN_R = 6371

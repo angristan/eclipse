@@ -2,7 +2,7 @@ import type { FeatureCollection } from 'geojson'
 import { LngLatBounds, Map as MlMap, Marker, type GeoJSONSource } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
 import type { CentralPath, LngLat } from '../lib/shadow'
-import { unwrapLngs } from '../lib/shadow'
+import { polarClose, unwrapLngs } from '../lib/shadow'
 import type { MarkerPos } from '../App'
 
 interface Props {
@@ -178,7 +178,7 @@ export function MapView({ path, footprints, marker, onPick, fitKey }: Props) {
   // Path layers + camera, when the selected eclipse changes.
   useEffect(() => {
     if (!ready) return
-    const bandRing = path ? unwrapLngs(path.band) : []
+    const bandRing = path ? polarClose(unwrapLngs(path.band)) : []
     setData('band', ring(bandRing))
     setData('center-line', line(path ? unwrapLngs(path.centerLine) : []))
 

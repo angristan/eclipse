@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { EclipseKind } from 'astronomy-engine'
 import { buildCatalog, nextEclipse, type EclipseEntry } from './lib/catalog'
 import { localCircumstances } from './lib/local'
-import { centralPath, footprint, haversineKm, unwrapLngs } from './lib/shadow'
+import { centralPath, footprint, haversineKm, polarClose, unwrapLngs } from './lib/shadow'
 import { HeroPanel } from './components/HeroPanel'
 import { MapView } from './components/MapView'
 import { ObserverPanel } from './components/ObserverPanel'
@@ -113,8 +113,8 @@ export function App() {
 
   const footprints = useMemo(
     () => ({
-      umbra: unwrapLngs(footprint(simTime, 'umbra')),
-      penumbra: unwrapLngs(footprint(simTime, 'penumbra')),
+      umbra: polarClose(unwrapLngs(footprint(simTime, 'umbra'))),
+      penumbra: polarClose(unwrapLngs(footprint(simTime, 'penumbra'))),
     }),
     [simTime],
   )
