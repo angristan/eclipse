@@ -1,13 +1,14 @@
 import type { FeatureCollection } from 'geojson'
 import { LngLatBounds, Map as MlMap, Marker, type GeoJSONSource } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
+import type { CoverageImage } from '../lib/coverage'
 import type { CentralPath, LngLat } from '../lib/shadow'
 import { polarClose, unwrapLngs } from '../lib/shadow'
 import type { MarkerPos } from '../App'
 
 interface Props {
   path: CentralPath | null
-  zones: { magnitude: number; rings: LngLat[][] }[]
+  coverage: CoverageImage
   footprints: { umbra: LngLat[]; penumbra: LngLat[] }
   marker: MarkerPos | null
   onPick: (pos: MarkerPos) => void
@@ -71,7 +72,7 @@ function line(points: LngLat[]): FeatureCollection {
   }
 }
 
-export function MapView({ path, zones, footprints, marker, onPick, fitKey }: Props) {
+export function MapView({ path, coverage, footprints, marker, onPick, fitKey }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
   const markerRef = useRef<Marker | null>(null)
@@ -99,21 +100,15 @@ export function MapView({ path, zones, footprints, marker, onPick, fitKey }: Pro
 
     const setup = (map: MlMap) => {
       mapRef.current = map
+      ;(window as unknown as Record<string, unknown>).__map = map
       map.on('error', (e) => console.error('map error', e.error?.message ?? e))
 
       map.on('load', () => {
-      map.addSource('coverage', { type: 'geojson', data: EMPTY })
       map.addSource('penumbra', { type: 'geojson', data: EMPTY })
       map.addSource('umbra', { type: 'geojson', data: EMPTY })
       map.addSource('band', { type: 'geojson', data: EMPTY })
       map.addSource('center-line', { type: 'geojson', data: EMPTY })
 
-      map.addLayer({
-        id: 'coverage-fill',
-        type: 'fill',
-        source: 'coverage',
-        paint: { 'fill-color': '#e89a5d', 'fill-opacity': 0.04 },
-      })
       map.addLayer({
         id: 'penumbra-fill',
         type: 'fill',
@@ -189,16 +184,25 @@ export function MapView({ path, zones, footprints, marker, onPick, fitKey }: Pro
     const bandRing = path ? polarClose(unwrapLngs(path.band)) : []
     setData('band', ring(bandRing))
     setData('center-line', line(path ? unwrapLngs(path.centerLine) : []))
-    setData('coverage', {
-      type: 'FeatureCollection',
-      features: zones.flatMap((z) =>
-        z.rings.map((ring) => ({
-          type: 'Feature' as const,
-          properties: { magnitude: z.magnitude },
-          geometry: { type: 'Polygon' as const, coordinates: [[...ring, ring[0]]] },
-        })),
-      ),
+    // Coverage raster: rebuild the canvas source for the selected eclipse.
+    const map = mapRef.current!
+    if (map.getLayer('coverage-raster')) map.removeLayer('coverage-raster')
+    if (map.getSource('coverage')) map.removeSource('coverage')
+    const canvas = document.createElement('canvas')
+    canvas.width = coverage.width
+    canvas.height = coverage.height
+    const imageData = new ImageData(new Uint8ClampedArray(coverage.pixels), coverage.width, coverage.height)
+    canvas.getContext('2d')!.putImageData(imageData, 0, 0)
+    map.addSource('coverage', {
+      type: 'canvas',
+      canvas,
+      coordinates: coverage.coordinates,
+      animate: false,
     })
+    map.addLayer(
+      { id: 'coverage-raster', type: 'raster', source: 'coverage', paint: { 'raster-resampling': 'linear' } },
+      'penumbra-fill',
+    )
 
     if (bandRing.length > 1) {
       // High-latitude paths can exceed Mercator's ±85.05° range; clamp so
@@ -213,7 +217,7 @@ export function MapView({ path, zones, footprints, marker, onPick, fitKey }: Pro
       mapRef.current!.easeTo({ center: [0, 30], zoom: 1.4, duration: 1200 })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, fitKey, path, zones])
+  }, [ready, fitKey, path, coverage])
 
   // Animated shadow footprints.
   useEffect(() => {

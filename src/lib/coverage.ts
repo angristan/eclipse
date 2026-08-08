@@ -6,6 +6,7 @@
 // than the shadow's passage.
 
 import { AstroTime, SiderealTime } from 'astronomy-engine'
+import { contours } from 'd3-contour'
 import { EARTH_A, EARTH_B } from './geometry'
 import { shadowFrame, type LngLat } from './shadow'
 
@@ -14,7 +15,8 @@ const RAD = Math.PI / 180
 
 export interface CoverageZone {
   magnitude: number
-  rings: LngLat[][]
+  /** GeoJSON-style polygons: each entry is [exteriorRing, ...holeRings]. */
+  polygons: LngLat[][][]
 }
 
 interface Grid {
@@ -27,7 +29,7 @@ interface Grid {
 /** Maximum eclipse magnitude per grid point over the eclipse, daylight only. */
 export function magnitudeGrid(
   peak: AstroTime,
-  stepDeg = 1.5,
+  stepDeg = 1.25,
   hoursAround = 3,
   stepSeconds = 120,
 ): Grid {
@@ -81,9 +83,14 @@ export function magnitudeGrid(
       const px = ex[i] * s.cosT - ey[i] * s.sinT
       const py = ex[i] * s.sinT + ey[i] * s.cosT
       const pz = ez[i]
-      // Daylight check: the Sun direction is opposite the shadow axis.
+      // Count an instant only while the Sun is visible there (refracted
+      // horizon ~ -1.7 degrees). What people see at sunset counts: a spot
+      // where the Sun sets mid-eclipse keeps the coverage it reached by
+      // then, and the zones fade out only where the Sun is gone before
+      // first contact.
       const len = Math.sqrt(px * px + py * py + pz * pz)
-      if ((px * s.ax + py * s.ay + pz * s.az) / len > 0.02) continue
+      const sunUp = -(px * s.ax + py * s.ay + pz * s.az) / len
+      if (sunUp < -0.03) continue
       // Perpendicular distance from the point to the shadow axis line.
       const dx = px - s.mx, dy = py - s.my, dz = pz - s.mz
       const cx = dy * s.az - dz * s.ay
@@ -99,85 +106,102 @@ export function magnitudeGrid(
 }
 
 /**
- * Marching squares: closed iso-contour rings of `level` on the grid.
- * The field is 0 outside the eclipse zone, so contours close naturally;
- * zones crossing the antimeridian simply split into two loops there.
+ * Iso-contour polygons of `level` on the grid via d3-contour (marching
+ * squares with correct saddle, hole, and winding handling). The field is
+ * below every level outside the grid, so zones touching the Arctic edge or
+ * the antimeridian close along the map border.
  */
-export function isoRings(grid: Grid, level: number): LngLat[][] {
+export function isoPolygons(grid: Grid, level: number): LngLat[][][] {
   const { lngs, lats, values } = grid
   const cols = lngs.length
-  const v = (r: number, c: number) => values[r * cols + c]
-  const key = (p: LngLat) => `${p[0].toFixed(4)},${p[1].toFixed(4)}`
-  const segments: [LngLat, LngLat][] = []
-
-  const interp = (pa: LngLat, va: number, pb: LngLat, vb: number): LngLat => {
-    const t = (level - va) / (vb - va)
-    return [pa[0] + t * (pb[0] - pa[0]), pa[1] + t * (pb[1] - pa[1])]
-  }
-
-  for (let r = 0; r < lats.length - 1; r++) {
-    for (let c = 0; c < cols - 1; c++) {
-      const corners: [LngLat, number][] = [
-        [[lngs[c], lats[r]], v(r, c)],
-        [[lngs[c + 1], lats[r]], v(r, c + 1)],
-        [[lngs[c + 1], lats[r + 1]], v(r + 1, c + 1)],
-        [[lngs[c], lats[r + 1]], v(r + 1, c)],
-      ]
-      let idx = 0
-      corners.forEach(([, val], i) => {
-        if (val >= level) idx |= 1 << i
-      })
-      if (idx === 0 || idx === 15) continue
-      // Edge midpoints between corner pairs (0-1, 1-2, 2-3, 3-0).
-      const edge = (a: number, b: number) =>
-        interp(corners[a][0], corners[a][1], corners[b][0], corners[b][1])
-      const CASES: Record<number, [number, number, number, number][]> = {
-        1: [[3, 0, 0, 1]], 2: [[0, 1, 1, 2]], 3: [[3, 0, 1, 2]], 4: [[1, 2, 2, 3]],
-        5: [[3, 0, 0, 1], [1, 2, 2, 3]], 6: [[0, 1, 2, 3]], 7: [[3, 0, 2, 3]],
-        8: [[2, 3, 3, 0]], 9: [[2, 3, 0, 1]], 10: [[0, 1, 3, 0], [1, 2, 2, 3]],
-        11: [[2, 3, 1, 2]], 12: [[1, 2, 3, 0]], 13: [[1, 2, 0, 1]], 14: [[0, 1, 3, 0]],
-      }
-      for (const [a1, a2, b1, b2] of CASES[idx]) {
-        segments.push([edge(a1, a2), edge(b1, b2)])
-      }
-    }
-  }
-
-  // Chain segments into rings by matching endpoints.
-  const byPoint = new Map<string, [LngLat, LngLat][]>()
-  for (const seg of segments) {
-    for (const p of seg) {
-      const k = key(p)
-      const list = byPoint.get(k) ?? []
-      list.push(seg)
-      byPoint.set(k, list)
-    }
-  }
-  const used = new Set<[LngLat, LngLat]>()
-  const rings: LngLat[][] = []
-  for (const seed of segments) {
-    if (used.has(seed)) continue
-    used.add(seed)
-    const ring: LngLat[] = [seed[0], seed[1]]
-    let guard = segments.length
-    while (guard-- > 0) {
-      const tail = ring[ring.length - 1]
-      const next = (byPoint.get(key(tail)) ?? []).find((s) => !used.has(s))
-      if (!next) break
-      used.add(next)
-      ring.push(key(next[0]) === key(tail) ? next[1] : next[0])
-      if (key(ring[ring.length - 1]) === key(ring[0])) break
-    }
-    if (ring.length > 8) rings.push(ring)
-  }
-  return rings
+  const lngStep = lngs[1] - lngs[0]
+  const latStep = lats[1] - lats[0]
+  const toGeo = ([x, y]: number[]): LngLat => [
+    Math.max(-180, Math.min(180, lngs[0] + (x - 0.5) * lngStep)),
+    Math.max(-85, Math.min(85, lats[0] + (y - 0.5) * latStep)),
+  ]
+  const [multi] = contours()
+    .size([cols, lats.length])
+    .smooth(true)
+    .thresholds([level])(Array.from(values))
+  return multi.coordinates.map((polygon) => polygon.map((ring) => ring.map(toGeo)))
 }
 
-/** Iso-coverage zones for one eclipse, ready for the map. */
+/** Iso-coverage zones for one eclipse. Used by validation tests. */
 export function coverageZones(
   peak: AstroTime,
   magnitudes = [0.2, 0.4, 0.6, 0.8],
 ): CoverageZone[] {
   const grid = magnitudeGrid(peak)
-  return magnitudes.map((m) => ({ magnitude: m, rings: isoRings(grid, m) }))
+  return magnitudes.map((m) => ({ magnitude: m, polygons: isoPolygons(grid, m) }))
+}
+
+export interface CoverageImage {
+  width: number
+  height: number
+  /** RGBA pixels, ready for ImageData. */
+  pixels: Uint8ClampedArray
+  /** Image corners for a MapLibre canvas source: TL, TR, BR, BL. */
+  coordinates: [[number, number], [number, number], [number, number], [number, number]]
+}
+
+const mercY = (latDeg: number) => Math.log(Math.tan(Math.PI / 4 + (latDeg * RAD) / 2))
+
+/**
+ * The coverage field as a Mercator-warped raster: rows are spaced so the
+ * linear image warp of a MapLibre canvas source lands every latitude in the
+ * right place. Bilinear sampling then stepped alpha gives smooth AFP-style
+ * bands with no polygon topology to break — zones may wrap poles, cross the
+ * antimeridian, or hug the terminator freely.
+ */
+export function coverageImage(grid: Grid, width = 1440, height = 720): CoverageImage {
+  const { lngs, lats, values } = grid
+  const cols = lngs.length
+  const rows = lats.length
+  const lngStep = lngs[1] - lngs[0]
+  const latStep = lats[1] - lats[0]
+  const top = mercY(lats[rows - 1])
+  const bottom = mercY(lats[0])
+  const pixels = new Uint8ClampedArray(width * height * 4)
+
+  const sample = (lng: number, lat: number) => {
+    const x = (lng - lngs[0]) / lngStep
+    const y = (lat - lats[0]) / latStep
+    const c0 = Math.max(0, Math.min(cols - 2, Math.floor(x)))
+    const r0 = Math.max(0, Math.min(rows - 2, Math.floor(y)))
+    const fx = Math.max(0, Math.min(1, x - c0))
+    const fy = Math.max(0, Math.min(1, y - r0))
+    const v00 = values[r0 * cols + c0]
+    const v01 = values[r0 * cols + c0 + 1]
+    const v10 = values[(r0 + 1) * cols + c0]
+    const v11 = values[(r0 + 1) * cols + c0 + 1]
+    return (v00 * (1 - fx) + v01 * fx) * (1 - fy) + (v10 * (1 - fx) + v11 * fx) * fy
+  }
+
+  for (let py = 0; py < height; py++) {
+    const merc = top - ((py + 0.5) / height) * (top - bottom)
+    const lat = (2 * Math.atan(Math.exp(merc)) - Math.PI / 2) / RAD
+    for (let px = 0; px < width; px++) {
+      const lng = -180 + ((px + 0.5) / width) * 360
+      const m = sample(lng, lat)
+      const alpha = m >= 0.8 ? 0.18 : m >= 0.6 ? 0.14 : m >= 0.4 ? 0.1 : m >= 0.2 ? 0.05 : 0
+      const i = (py * width + px) * 4
+      pixels[i] = 232
+      pixels[i + 1] = 154
+      pixels[i + 2] = 93
+      pixels[i + 3] = Math.round(alpha * 255)
+    }
+  }
+
+  return {
+    width,
+    height,
+    pixels,
+    coordinates: [
+      [-180, lats[rows - 1]],
+      [180, lats[rows - 1]],
+      [180, lats[0]],
+      [-180, lats[0]],
+    ],
+  }
 }
