@@ -28,7 +28,7 @@ function localLabel(view: LocalView): string {
 export function EclipseList({ catalog, eclipse, visibility, visibleFrom, onSelect }: Props) {
   const currentRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
-    currentRef.current?.scrollIntoView({ block: 'center' })
+    currentRef.current?.scrollIntoView({ block: 'center', inline: 'center' })
     // Once, so opening the page centers on the selected eclipse without
     // hijacking the scroll on every selection.
     // eslint-disable-next-line react-hooks/exhaustive-deps

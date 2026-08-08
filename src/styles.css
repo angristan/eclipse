@@ -407,58 +407,6 @@ tr.below-horizon {
   font-size: 10.5px;
 }
 
-/* ---------- compact composition ---------- */
-
-@media (max-width: 56.25em) {
-  .hero {
-    left: 8px;
-    right: 8px;
-    top: 8px;
-    bottom: auto;
-    max-height: 56%;
-    width: auto;
-    border-radius: 14px;
-    padding: 14px;
-    gap: 10px;
-  }
-
-  .catalog-scroll {
-    min-height: 90px;
-  }
-
-  .hero h1 {
-    font-size: 26px;
-  }
-
-  .hero h1 em {
-    display: inline;
-    margin-left: 6px;
-  }
-
-  .countdown-cell b {
-    font-size: 24px;
-  }
-
-  .peak-line {
-    display: none;
-  }
-
-  .observer {
-    top: auto;
-    right: 8px;
-    left: 8px;
-    bottom: 74px;
-    width: auto;
-    max-height: 44%;
-    border-radius: 14px;
-    padding: 14px;
-  }
-
-  .time-slider {
-    bottom: 8px;
-  }
-}
-
 /* ---------- scrollable eclipse timeline ---------- */
 
 .catalog {
@@ -558,18 +506,140 @@ tr.below-horizon {
   font-size: 12px;
 }
 
-.observer-empty {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+/* ---------- compact composition ---------- */
 
-.observer-empty h2 {
-  margin: 0;
-  font-size: 24px;
-}
+@media (max-width: 56.25em) {
+  .hero {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: auto;
+    width: auto;
+    max-height: none;
+    border-radius: 14px;
+    padding: 12px 14px;
+    gap: 8px;
+  }
 
-.observer-empty p {
-  margin: 0;
-  font-size: 13.5px;
+  .hero h1 {
+    font-size: 21px;
+  }
+
+  .hero h1 em {
+    display: inline;
+    margin-left: 6px;
+  }
+
+  .countdown {
+    gap: 10px;
+  }
+
+  .countdown-cell b {
+    font-size: 20px;
+  }
+
+  .countdown-cell small {
+    font-size: 9px;
+  }
+
+  .peak-line,
+  .about,
+  .row-kind {
+    display: none;
+  }
+
+  /* The timeline becomes one swipeable strip of chips. */
+  .catalog-scroll {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-top: none;
+    scrollbar-width: none;
+  }
+
+  .catalog-scroll section {
+    display: flex;
+    align-items: stretch;
+    gap: 2px;
+  }
+
+  .catalog-scroll h4 {
+    margin: 0;
+    padding: 0 6px;
+    font-size: 11px;
+    align-self: center;
+  }
+
+  .catalog-scroll section:first-child h4 {
+    margin-top: 0;
+  }
+
+  .catalog .row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    width: max-content;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+  }
+
+  .catalog .row.current {
+    border-color: rgba(246, 194, 92, 0.5);
+    background: rgba(246, 194, 92, 0.1);
+  }
+
+  .row-date {
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .row-local {
+    text-align: left;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .observer {
+    top: auto;
+    left: 8px;
+    right: 8px;
+    bottom: 64px;
+    width: auto;
+    max-height: 40%;
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+
+  .observer-head h2 {
+    font-size: 20px;
+  }
+
+  .stat b {
+    font-size: 19px;
+  }
+
+  .sun-sim svg {
+    width: 110px;
+    height: 110px;
+  }
+
+  .time-slider {
+    bottom: 8px;
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .time-slider .reset {
+    display: none;
+  }
+
+  .time-slider .clock {
+    min-width: 62px;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
 }
