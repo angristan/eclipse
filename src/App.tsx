@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { EclipseKind } from 'astronomy-engine'
 import { buildCatalog, nextEclipse, type EclipseEntry } from './lib/catalog'
 import { localCircumstances } from './lib/local'
-import { centralPath, footprint, unwrapLngs } from './lib/shadow'
+import { centralPath, footprint, haversineKm, unwrapLngs } from './lib/shadow'
 import { HeroPanel } from './components/HeroPanel'
 import { MapView } from './components/MapView'
 import { ObserverPanel } from './components/ObserverPanel'
@@ -17,8 +17,14 @@ export interface Home extends MarkerPos {
   city: string | null
 }
 
-/** What each catalog eclipse looks like from the visitor's home, by id. */
-export type HomeVisibility = Record<string, { kind: EclipseKind; obscuration: number }>
+/** What each catalog eclipse looks like from one reference point, by id. */
+export type Visibility = Record<string, { kind: EclipseKind; obscuration: number }>
+
+/** Where the catalog visibility is computed from, with a display label. */
+export interface VisibleFrom {
+  point: MarkerPos
+  label: string | null
+}
 
 /** Slider range around the eclipse peak, in minutes. */
 export const WINDOW_MIN = 180
@@ -44,7 +50,7 @@ export function App() {
   const [offsetMin, setOffsetMin] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [home, setHome] = useState<Home | null>(null)
-  const [homeVisibility, setHomeVisibility] = useState<HomeVisibility | null>(null)
+  const [visibility, setVisibility] = useState<Visibility | null>(null)
 
   // Coarse edge geolocation: personalizes the forecast with no permission
   // prompt. Fails silently outside the deployed Worker (e.g. vite dev).
@@ -59,21 +65,34 @@ export function App() {
       .catch(() => {})
   }, [])
 
-  // Sweep the whole catalog for the home location, off the first paint.
+  // The catalog visibility list follows the pinned point; home is the
+  // fallback before any pin exists.
+  const refPoint = marker ?? (home ? { lat: home.lat, lng: home.lng } : null)
+  const refIsHome =
+    refPoint && home
+      ? haversineKm([home.lng, home.lat], [refPoint.lng, refPoint.lat]) < 30
+      : false
+  const visibleFrom: VisibleFrom | null = refPoint
+    ? { point: refPoint, label: refIsHome ? (home?.city ?? null) : null }
+    : null
+
+  // Debounced sweep of all catalog eclipses at the reference point.
   useEffect(() => {
-    if (!home) return
+    if (!refPoint) return
+    const { lat, lng } = refPoint
     const t = setTimeout(() => {
-      const out: HomeVisibility = {}
+      const out: Visibility = {}
       for (const e of catalog) {
-        const info = localCircumstances(e, home.lat, home.lng)
+        const info = localCircumstances(e, lat, lng)
         if (info && info.peak.altitude > 0 && info.obscuration > 0.005) {
           out[e.id] = { kind: info.kind, obscuration: info.obscuration }
         }
       }
-      setHomeVisibility(out)
-    }, 50)
+      setVisibility(out)
+    }, 300)
     return () => clearTimeout(t)
-  }, [home, catalog])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refPoint?.lat, refPoint?.lng, catalog])
 
   const eclipse = catalog.find((e) => e.id === eclipseId)!
   const path = useMemo(() => centralPath(eclipse.peak, WINDOW_MIN / 60), [eclipse])
@@ -130,7 +149,8 @@ export function App() {
         catalog={catalog}
         eclipse={eclipse}
         home={home}
-        homeVisibility={homeVisibility}
+        visibility={visibility}
+        visibleFrom={visibleFrom}
         onSelect={selectEclipse}
         onMarker={setMarker}
       />
