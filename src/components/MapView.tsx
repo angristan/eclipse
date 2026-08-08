@@ -1,7 +1,6 @@
 import type { FeatureCollection } from 'geojson'
 import { LngLatBounds, Map as MlMap, Marker, type GeoJSONSource } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
-import type { CloudSegment } from '../App'
 import type { CoverageImage } from '../lib/coverage'
 import type { CentralPath, LngLat } from '../lib/shadow'
 import { polarClose, unwrapLngs } from '../lib/shadow'
@@ -12,7 +11,6 @@ interface Props {
   coverage: CoverageImage
   shadow: CoverageImage
   umbra: LngLat[]
-  cloudLine: CloudSegment[] | null
   marker: MarkerPos | null
   onPick: (pos: MarkerPos) => void
   fitKey: string
@@ -75,7 +73,7 @@ function line(points: LngLat[]): FeatureCollection {
   }
 }
 
-export function MapView({ path, coverage, shadow, umbra, cloudLine, marker, onPick, fitKey }: Props) {
+export function MapView({ path, coverage, shadow, umbra, marker, onPick, fitKey }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
   const shadowCanvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -120,7 +118,6 @@ export function MapView({ path, coverage, shadow, umbra, cloudLine, marker, onPi
       })
       map.addSource('umbra', { type: 'geojson', data: EMPTY })
       map.addSource('band', { type: 'geojson', data: EMPTY })
-      map.addSource('cloud-line', { type: 'geojson', data: EMPTY })
       map.addSource('center-line', { type: 'geojson', data: EMPTY })
 
       map.addLayer({ id: 'shadow-raster', type: 'raster', source: 'shadow', paint: { 'raster-resampling': 'linear', 'raster-fade-duration': 0 } })
@@ -141,13 +138,6 @@ export function MapView({ path, coverage, shadow, umbra, cloudLine, marker, onPi
         type: 'line',
         source: 'band',
         paint: { 'line-color': '#f0b07a', 'line-opacity': 0.9, 'line-width': 1.2 },
-      })
-      map.addLayer({
-        id: 'cloud-line',
-        type: 'line',
-        source: 'cloud-line',
-        layout: { 'line-cap': 'round' },
-        paint: { 'line-color': ['get', 'color'], 'line-width': 5, 'line-opacity': 0.9 },
       })
       map.addLayer({
         id: 'center-line',
@@ -234,20 +224,6 @@ export function MapView({ path, coverage, shadow, umbra, cloudLine, marker, onPi
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, fitKey, path, coverage])
-
-  // Cloud forecast sleeve under the center line.
-  useEffect(() => {
-    if (!ready) return
-    setData('cloud-line', {
-      type: 'FeatureCollection',
-      features: (cloudLine ?? []).map((seg) => ({
-        type: 'Feature' as const,
-        properties: { color: seg.color },
-        geometry: { type: 'LineString' as const, coordinates: unwrapLngs([seg.from, seg.to]) },
-      })),
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, cloudLine])
 
   // Animated shadow raster + crisp umbra outline.
   useEffect(() => {
