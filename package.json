@@ -14,7 +14,7 @@
     "@fontsource/instrument-serif": "^5.3.0",
     "astronomy-engine": "^2.1.19",
     "d3-contour": "^4.0.2",
-    "maplibre-gl": "^5",
+    "maplibre-gl": "^6",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
